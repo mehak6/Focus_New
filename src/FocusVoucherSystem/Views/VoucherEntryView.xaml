@@ -67,11 +67,32 @@
         
         <!-- Header -->
         <Border Grid.Row="0" Background="#f7fafc" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="20,15">
-            <StackPanel>
-                <TextBlock Text="📋 Voucher Entry" Style="{StaticResource HeaderTextStyle}"/>
-                <TextBlock Text="Manage voucher entries with Dr/Cr transactions" 
-                          FontSize="12" Foreground="#718096"/>
-            </StackPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0">
+                    <TextBlock Text="📋 Voucher Entry" Style="{StaticResource HeaderTextStyle}"/>
+                    <TextBlock Text="Manage voucher entries with Dr/Cr transactions" 
+                              FontSize="12" Foreground="#718096"/>
+                </StackPanel>
+                
+                <!-- Search Controls -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Search Voucher #:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="SemiBold"/>
+                    <TextBox Name="SearchVoucherTextBox" Width="120" Height="30" VerticalContentAlignment="Center" 
+                             Padding="8,5" BorderBrush="#cbd5e0" BorderThickness="1" Margin="0,0,10,0"
+                             ToolTip="Enter voucher number to search (Press Enter to search)"
+                             KeyDown="SearchVoucherTextBox_KeyDown"/>
+                    <Button Content="🔍 Search" Command="{Binding SearchVoucherCommand}" 
+                            CommandParameter="{Binding ElementName=SearchVoucherTextBox, Path=Text}"
+                            Style="{StaticResource SecondaryButtonStyle}" Height="30" Margin="0,0,10,0"/>
+                    <Button Content="🔄 Reset" Command="{Binding ResetViewCommand}" 
+                            Style="{StaticResource SecondaryButtonStyle}" Height="30"/>
+                </StackPanel>
+            </Grid>
         </Border>
         
         <!-- Input Form -->
@@ -129,9 +150,12 @@
                              Style="{StaticResource InputStyle}" TextAlignment="Right"/>
                     
                     <TextBlock Grid.Column="3" Text="Dr/Cr:" Style="{StaticResource LabelStyle}"/>
-                    <ComboBox Grid.Column="4" SelectedValue="{Binding CurrentVoucher.DrCr}" Height="30" VerticalContentAlignment="Center">
-                        <ComboBoxItem Content="D" />
-                        <ComboBoxItem Content="C" />
+                    <ComboBox Grid.Column="4" SelectedValue="{Binding CurrentVoucher.DrCr, UpdateSourceTrigger=PropertyChanged}" 
+                              Height="30" VerticalContentAlignment="Center">
+                        <ComboBox.Items>
+                            <System:String xmlns:System="clr-namespace:System;assembly=System.Runtime">D</System:String>
+                            <System:String xmlns:System="clr-namespace:System;assembly=System.Runtime">C</System:String>
+                        </ComboBox.Items>
                     </ComboBox>
                     
                     <TextBlock Grid.Column="6" Text="Narration:" Style="{StaticResource LabelStyle}"/>
@@ -269,7 +293,7 @@
                 
                 <TextBlock Grid.Column="2" VerticalAlignment="Center" FontSize="12">
                     <Run Text="Selected: "/>
-                    <Run Text="{Binding SelectedVoucher.DisplayDescription}" FontWeight="Bold"/>
+                    <Run Text="{Binding SelectedVoucher.DisplayDescription, Mode=OneWay}" FontWeight="Bold"/>
                 </TextBlock>
             </Grid>
         </Border>

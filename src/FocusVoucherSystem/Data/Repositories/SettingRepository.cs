@@ -16,11 +16,8 @@ public class SettingRepository : ISettingRepository
         _dbConnection = dbConnection;
     }
 
-    public async Task<Setting?> GetByIdAsync(int id)
-    {
-        // Settings don't have numeric IDs, they use string keys
-        throw new NotSupportedException("Settings use string keys. Use GetByKeyAsync instead.");
-    }
+    public Task<Setting?> GetByIdAsync(int id)
+        => throw new NotSupportedException("Settings use string keys. Use GetByKeyAsync instead.");
 
     public async Task<IEnumerable<Setting>> GetAllAsync()
     {
@@ -60,10 +57,8 @@ public class SettingRepository : ISettingRepository
         return entity;
     }
 
-    public async Task<bool> DeleteAsync(int id)
-    {
-        throw new NotSupportedException("Settings use string keys. Use DeleteAsync(string key) instead.");
-    }
+    public Task<bool> DeleteAsync(int id)
+        => throw new NotSupportedException("Settings use string keys. Use DeleteAsync(string key) instead.");
 
     public async Task<bool> DeleteAsync(string key)
     {
@@ -74,10 +69,8 @@ public class SettingRepository : ISettingRepository
         return rowsAffected > 0;
     }
 
-    public async Task<bool> ExistsAsync(int id)
-    {
-        throw new NotSupportedException("Settings use string keys. Use SettingExistsAsync instead.");
-    }
+    public Task<bool> ExistsAsync(int id)
+        => throw new NotSupportedException("Settings use string keys. Use SettingExistsAsync instead.");
 
     public async Task<int> CountAsync()
     {
@@ -106,7 +99,7 @@ public class SettingRepository : ISettingRepository
         return await connection.QuerySingleOrDefaultAsync<string>(sql, new { Key = key });
     }
 
-    public async Task<T?> GetValueAsync<T>(string key, T defaultValue = default)
+    public async Task<T?> GetValueAsync<T>(string key, T? defaultValue = default)
     {
         var stringValue = await GetValueAsync(key);
         

@@ -46,6 +46,8 @@ public partial class MainWindow : Window
         try
         {
             await _viewModel.InitializeAsync();
+            // Navigate to default view (Voucher Entry) on startup
+            await _navigationService.NavigateToAsync("VoucherEntry", _viewModel.CurrentCompany);
         }
         catch (Exception ex)
         {
@@ -54,7 +56,7 @@ public partial class MainWindow : Window
         }
     }
 
-    private void MainWindow_Closed(object sender, EventArgs e)
+    private void MainWindow_Closed(object? sender, EventArgs e)
     {
         try
         {
@@ -84,10 +86,12 @@ public partial class MainWindow : Window
     /// <summary>
     /// Registers all views with the navigation service
     /// </summary>
-    private void RegisterViews()
-    {
-        _navigationService.RegisterView("VoucherEntry", typeof(VoucherEntryView), typeof(VoucherEntryViewModel));
-        _navigationService.RegisterView("VehicleManagement", typeof(VehicleManagementView), typeof(VehicleManagementViewModel));
-        // Add more views as they are created
+        private void RegisterViews()
+        {
+            _navigationService.RegisterView("VoucherEntry", typeof(VoucherEntryView), typeof(VoucherEntryViewModel));
+            _navigationService.RegisterView("VehicleManagement", typeof(VehicleManagementView), typeof(VehicleManagementViewModel));
+            _navigationService.RegisterView("Reports", typeof(ReportsView), typeof(ReportsViewModel));
+            _navigationService.RegisterView("Utilities", typeof(UtilitiesView), typeof(UtilitiesViewModel));
+            // Add more views as they are created
+        }
     }
-}

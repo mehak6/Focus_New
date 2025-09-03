@@ -62,18 +62,23 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
                 Vehicles.Add(vehicle);
             }
 
-            // Load vouchers
-            var vouchers = await _dataService.Vouchers.GetByCompanyIdAsync(CurrentCompany.CompanyId);
+            // Load recent vouchers (limited for performance)
+            var allVouchers = await _dataService.Vouchers.GetByCompanyIdAsync(CurrentCompany.CompanyId);
+            
+            // The repository already limits to 50, so just add them to the collection
             Vouchers.Clear();
-            foreach (var voucher in vouchers.OrderByDescending(v => v.Date).ThenByDescending(v => v.VoucherNumber))
+            foreach (var voucher in allVouchers)
             {
                 Vouchers.Add(voucher);
             }
 
-            TotalVouchers = Vouchers.Count;
-            StatusMessage = $"Loaded {TotalVouchers} vouchers and {Vehicles.Count} vehicles";
+            // Get total count for status display
+            var totalCount = await _dataService.Vouchers.CountByCompanyAsync(CurrentCompany.CompanyId);
+            TotalVouchers = totalCount;
+            StatusMessage = $"Loaded {Vouchers.Count} recent vouchers (showing latest {Vouchers.Count} of {TotalVouchers} total) and {Vehicles.Count} vehicles";
 
         }, "Loading voucher data...");
+        await SetNextVoucherNumberAsync();
     }
 
     /// <summary>
@@ -86,16 +91,54 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             Date = DateTime.Today,
             DrCr = "D",
             Amount = 0m,
-            CompanyId = CurrentCompany?.CompanyId ?? 1
+            CompanyId = CurrentCompany?.CompanyId ?? 0,
+            VehicleId = 0
+            // VoucherNumber defaults to 0 and will be set by SetNextVoucherNumberAsync
         };
 
+        SelectedVehicle = null;
+    }
+
+    private async Task SetNextVoucherNumberAsync()
+    {
         if (CurrentCompany != null)
         {
-            CurrentVoucher.VoucherNumber = CurrentCompany.GetNextVoucherNumber();
+            try
+            {
+                var next = await _dataService.Companies.GetNextVoucherNumberAsync(CurrentCompany.CompanyId);
+                CurrentVoucher.VoucherNumber = next;
+                StatusMessage = $"Ready for voucher #{next}";
+            }
+            catch (Exception)
+            {
+                CurrentVoucher.VoucherNumber = CurrentCompany.GetNextVoucherNumber();
+                StatusMessage = $"Ready for voucher #{CurrentVoucher.VoucherNumber} (using cached value)";
+            }
         }
-
-        SelectedVehicle = null;
-        StatusMessage = "New voucher ready";
+        else
+        {
+            // Fallback: Try to get a company if somehow CurrentCompany is null
+            try
+            {
+                var companies = await _dataService.Companies.GetActiveCompaniesAsync();
+                var defaultCompany = companies.FirstOrDefault();
+                if (defaultCompany != null)
+                {
+                    CurrentCompany = defaultCompany;
+                    var next = await _dataService.Companies.GetNextVoucherNumberAsync(CurrentCompany.CompanyId);
+                    CurrentVoucher.VoucherNumber = next;
+                    StatusMessage = $"Ready for voucher #{next} (recovered default company)";
+                    return;
+                }
+            }
+            catch (Exception)
+            {
+                // Recovery failed, continue to error handling
+            }
+            
+            CurrentVoucher.VoucherNumber = 0;
+            StatusMessage = "ERROR: No company selected - voucher number set to 0";
+        }
     }
 
     /// <summary>
@@ -103,10 +146,25 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     /// </summary>
     private bool ValidateCurrentVoucher()
     {
+        // Set CompanyId before validation
+        if (CurrentCompany != null)
+        {
+            CurrentVoucher.CompanyId = CurrentCompany.CompanyId;
+        }
+
+        // Set VehicleId before validation
+        if (SelectedVehicle != null)
+        {
+            CurrentVoucher.VehicleId = SelectedVehicle.VehicleId;
+        }
+
         var errors = CurrentVoucher.Validate();
 
         if (SelectedVehicle == null)
             errors.Add("Please select a vehicle");
+        
+        if (CurrentCompany == null)
+            errors.Add("Company must be selected");
 
         if (errors.Any())
         {
@@ -126,6 +184,7 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     private void NewVoucher()
     {
         InitializeNewVoucher();
+        _ = SetNextVoucherNumberAsync();
     }
 
     /// <summary>
@@ -139,9 +198,7 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
 
         await ExecuteAsync(async () =>
         {
-            // Set the vehicle ID
-            CurrentVoucher.VehicleId = SelectedVehicle!.VehicleId;
-            CurrentVoucher.CompanyId = CurrentCompany!.CompanyId;
+            // IDs are already set in ValidateCurrentVoucher
 
             Voucher savedVoucher;
 
@@ -151,9 +208,15 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
                 savedVoucher = await _dataService.Vouchers.AddAsync(CurrentVoucher);
                 
                 // Update company's last voucher number
-                await _dataService.Companies.UpdateLastVoucherNumberAsync(
-                    CurrentCompany.CompanyId, 
-                    CurrentVoucher.VoucherNumber);
+                if (CurrentCompany != null)
+                {
+                    await _dataService.Companies.UpdateLastVoucherNumberAsync(
+                        CurrentCompany.CompanyId, 
+                        CurrentVoucher.VoucherNumber);
+                    
+                    // Update the in-memory company object immediately
+                    CurrentCompany.LastVoucherNumber = CurrentVoucher.VoucherNumber;
+                }
 
                 Vouchers.Insert(0, savedVoucher);
                 TotalVouchers++;
@@ -177,7 +240,9 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             // Load fresh vehicle data for the saved voucher
             savedVoucher.Vehicle = await _dataService.Vehicles.GetByIdAsync(savedVoucher.VehicleId);
 
+            // Prepare for next voucher after successful save
             InitializeNewVoucher();
+            await SetNextVoucherNumberAsync();
 
         }, "Saving voucher...");
     }
@@ -247,22 +312,68 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
                 return;
             }
 
-            var allVouchers = await _dataService.Vouchers.GetByCompanyIdAsync(CurrentCompany.CompanyId);
-            var filtered = allVouchers.Where(v => 
-                (v.Vehicle?.VehicleNumber?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) == true) ||
-                (v.Narration?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) == true))
-                .OrderByDescending(v => v.Date)
-                .ThenByDescending(v => v.VoucherNumber);
-
+            var searchResults = await _dataService.Vouchers.SearchVouchersAsync(CurrentCompany.CompanyId, searchTerm, 50);
+            
             Vouchers.Clear();
-            foreach (var voucher in filtered)
+            foreach (var voucher in searchResults)
             {
                 Vouchers.Add(voucher);
             }
 
-            StatusMessage = $"Found {Vouchers.Count} vouchers matching '{searchTerm}'";
+            StatusMessage = $"Found {Vouchers.Count} vouchers matching '{searchTerm}' (showing up to 50 results)";
 
         }, "Searching vouchers...");
+    }
+
+    /// <summary>
+    /// Searches for a specific voucher by number
+    /// </summary>
+    [RelayCommand]
+    private async Task SearchVoucher(string voucherNumber)
+    {
+        if (CurrentCompany == null) return;
+
+        await ExecuteAsync(async () =>
+        {
+            if (string.IsNullOrWhiteSpace(voucherNumber))
+            {
+                StatusMessage = "Please enter a voucher number to search";
+                return;
+            }
+
+            if (!int.TryParse(voucherNumber.Trim(), out int voucherNum))
+            {
+                StatusMessage = "Please enter a valid voucher number";
+                return;
+            }
+
+            // Search for the specific voucher
+            var voucher = await _dataService.Vouchers.GetByVoucherNumberAsync(CurrentCompany.CompanyId, voucherNum);
+            
+            Vouchers.Clear();
+            if (voucher != null)
+            {
+                // Load vehicle information for the voucher
+                voucher.Vehicle = await _dataService.Vehicles.GetByIdAsync(voucher.VehicleId);
+                Vouchers.Add(voucher);
+                StatusMessage = $"Found voucher #{voucherNum}";
+            }
+            else
+            {
+                StatusMessage = $"Voucher #{voucherNum} not found";
+            }
+
+        }, "Searching for voucher...");
+    }
+
+    /// <summary>
+    /// Resets the view to show recent vouchers
+    /// </summary>
+    [RelayCommand]
+    private async Task ResetView()
+    {
+        await LoadDataAsync();
+        StatusMessage = "View reset to show recent vouchers";
     }
 
     #endregion
@@ -309,6 +420,9 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
         {
             CurrentCompany = company;
             await LoadDataAsync();
+            // Initialize a new voucher with the company set
+            InitializeNewVoucher();
+            await SetNextVoucherNumberAsync();
         }
     }
 

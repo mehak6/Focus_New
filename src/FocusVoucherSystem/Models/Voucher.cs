@@ -1,11 +1,12 @@
 using System.ComponentModel.DataAnnotations;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace FocusVoucherSystem.Models;
 
 /// <summary>
 /// Represents a voucher entry in the system
 /// </summary>
-public class Voucher
+public partial class Voucher : ObservableObject
 {
     /// <summary>
     /// Unique identifier for the voucher

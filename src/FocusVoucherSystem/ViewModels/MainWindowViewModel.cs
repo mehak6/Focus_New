@@ -148,6 +148,7 @@ public partial class MainWindowViewModel : BaseViewModel, INavigationAware
         StatusMessage = "Reports";
     }
 
+
     [RelayCommand]
     private async Task NavigateToUtilities()
     {

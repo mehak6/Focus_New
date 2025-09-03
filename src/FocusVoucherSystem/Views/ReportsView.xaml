@@ -1,0 +1,168 @@
+<UserControl x:Class="FocusVoucherSystem.Views.ReportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="600" d:DesignWidth="1000">
+
+    <UserControl.Resources>
+        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#2d3748"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="MinWidth" Value="100"/>
+        </Style>
+
+        <Style x:Key="InputStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="BorderBrush" Value="#cbd5e0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="ButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
+            <Setter Property="Background" Value="#4299e1"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3182ce"/>
+        </Style>
+
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
+            <Setter Property="Background" Value="#e2e8f0"/>
+            <Setter Property="Foreground" Value="#2d3748"/>
+            <Setter Property="BorderBrush" Value="#cbd5e0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#f7fafc" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="20,15">
+            <StackPanel>
+                <TextBlock Text="📊 Reports" Style="{StaticResource HeaderTextStyle}"/>
+                <TextBlock Text="Generate and export reports" FontSize="12" Foreground="#718096"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Filters -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="20,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="260"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="150"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="Report:" Style="{StaticResource LabelStyle}"/>
+                <ComboBox Grid.Column="1" ItemsSource="{Binding ReportTypes}" SelectedItem="{Binding SelectedReportType}" Height="30"/>
+
+                <TextBlock Grid.Column="3" Text="From:" Style="{StaticResource LabelStyle}"/>
+                <DatePicker Grid.Column="4" SelectedDate="{Binding StartDate}" Height="30"/>
+
+                <TextBlock Grid.Column="6" Text="To:" Style="{StaticResource LabelStyle}"/>
+                <DatePicker Grid.Column="7" SelectedDate="{Binding EndDate}" Height="30"/>
+
+                <TextBlock Grid.Column="9" Text="Vehicle:" Style="{StaticResource LabelStyle}"/>
+                <ComboBox Grid.Column="10" ItemsSource="{Binding Vehicles}" SelectedItem="{Binding SelectedVehicle}"
+                          DisplayMemberPath="DisplayName" Height="30"/>
+
+                <StackPanel Grid.Column="12" Orientation="Horizontal">
+                    <Button Content="Generate" Command="{Binding GenerateReportCommand}" Style="{StaticResource PrimaryButtonStyle}"/>
+                    <Button Content="Export CSV" Command="{Binding ExportCsvCommand}" Style="{StaticResource SecondaryButtonStyle}"/>
+                    <Button Content="Export PDF" Command="{Binding ExportPdfCommand}" Style="{StaticResource SecondaryButtonStyle}"/>
+                    <Button Content="Export Excel" Command="{Binding ExportExcelCommand}" Style="{StaticResource SecondaryButtonStyle}"/>
+                    <Button Content="Print Preview" Command="{Binding PrintCommand}" Style="{StaticResource SecondaryButtonStyle}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Results Grid -->
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding ReportRows}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
+                  AlternationCount="2"
+                  AlternatingRowBackground="#f8f9fa"
+                  SelectionMode="Single">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="120"/>
+                <DataGridTextColumn Header="V.No" Binding="{Binding VoucherNumber}" Width="80"/>
+                <DataGridTextColumn Header="Vehicle" Binding="{Binding VehicleNumber}" Width="180"/>
+                <DataGridTextColumn Header="Narration" Binding="{Binding Narration}" Width="*"/>
+                <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="120">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Right"/>
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Dr/Cr" Binding="{Binding DrCr}" Width="60"/>
+                <DataGridTextColumn Header="Balance" Binding="{Binding RunningBalance, StringFormat=N2}" Width="140">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Right"/>
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Totals -->
+        <Border Grid.Row="3" Background="#edf2f7" BorderBrush="#cbd5e0" BorderThickness="0,1,0,0" Padding="15,8">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <TextBlock Margin="0,0,20,0">
+                    <Run Text="Total Dr: "/>
+                    <Run Text="{Binding TotalDebits, StringFormat=N2}" FontWeight="Bold"/>
+                </TextBlock>
+                <TextBlock Margin="0,0,20,0">
+                    <Run Text="Total Cr: "/>
+                    <Run Text="{Binding TotalCredits, StringFormat=N2}" FontWeight="Bold"/>
+                </TextBlock>
+                <TextBlock>
+                    <Run Text="Net: "/>
+                    <Run Text="{Binding NetAmount, StringFormat=N2}" FontWeight="Bold"/>
+                    <Run Text=" "/>
+                    <Run Text="{Binding NetDrCr}" FontWeight="Bold"/>
+                </TextBlock>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

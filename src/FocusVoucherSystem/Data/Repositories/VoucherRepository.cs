@@ -18,7 +18,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<Voucher?> GetByIdAsync(int id)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
@@ -79,7 +79,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<Voucher> AddAsync(Voucher entity)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             INSERT INTO Vouchers (CompanyId, VoucherNumber, Date, VehicleId, Amount, DrCr, Narration, CreatedDate, ModifiedDate)
             VALUES (@CompanyId, @VoucherNumber, @Date, @VehicleId, @Amount, @DrCr, @Narration, @CreatedDate, @ModifiedDate);
@@ -96,7 +96,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<Voucher> UpdateAsync(Voucher entity)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             UPDATE Vouchers 
             SET CompanyId = @CompanyId, VoucherNumber = @VoucherNumber, Date = @Date, 
@@ -139,14 +139,136 @@ public class VoucherRepository : IVoucherRepository
     public async Task<IEnumerable<Voucher>> GetByCompanyIdAsync(int companyId)
     {
         var connection = await _dbConnection.GetConnectionAsync();
-        const string sql = @"
-            SELECT VoucherId, CompanyId, VoucherNumber, Date, VehicleId, 
-                   Amount, DrCr, Narration, CreatedDate, ModifiedDate
-            FROM Vouchers 
-            WHERE CompanyId = @CompanyId
-            ORDER BY Date DESC, VoucherNumber DESC";
         
-        return await connection.QueryAsync<Voucher>(sql, new { CompanyId = companyId });
+        try
+        {
+            // First, get vouchers for the company (limit to recent ones for performance)
+            const string voucherSql = @"
+                SELECT VoucherId, CompanyId, VoucherNumber, Date, VehicleId, 
+                       Amount, DrCr, Narration, CreatedDate, ModifiedDate
+                FROM Vouchers 
+                WHERE CompanyId = @CompanyId
+                ORDER BY Date DESC, VoucherNumber DESC
+                LIMIT 50";
+            
+            // Use dynamic to avoid type mapping issues, then manually create Voucher objects
+            var dynamicVouchers = await connection.QueryAsync(voucherSql, new { CompanyId = companyId });
+            
+            var voucherList = new List<Voucher>();
+            foreach (var row in dynamicVouchers)
+            {
+                try
+                {
+                    var voucher = new Voucher
+                    {
+                        VoucherId = Convert.ToInt32(row.VoucherId),          // Convert long to int
+                        CompanyId = Convert.ToInt32(row.CompanyId),          // Convert long to int  
+                        VoucherNumber = Convert.ToInt32(row.VoucherNumber),  // Convert long to int
+                        Date = DateTime.Parse(row.Date.ToString()),
+                        VehicleId = Convert.ToInt32(row.VehicleId),          // Convert long to int
+                        Amount = Convert.ToDecimal(row.Amount),              // Convert double to decimal
+                        DrCr = row.DrCr.ToString(),
+                        Narration = row.Narration?.ToString(),
+                        CreatedDate = DateTime.Parse(row.CreatedDate.ToString()),
+                        ModifiedDate = DateTime.Parse(row.ModifiedDate.ToString())
+                    };
+                    voucherList.Add(voucher);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error mapping voucher row: {ex.Message}");
+                }
+            }
+            
+            if (voucherList.Any())
+            {
+                // Get all vehicles for these vouchers
+                var vehicleIds = voucherList.Select(v => v.VehicleId).Distinct().ToList();
+                if (vehicleIds.Any())
+                {
+                    var vehicleSql = $@"
+                        SELECT VehicleId, CompanyId, VehicleNumber, Description, 
+                               IsActive, CreatedDate, ModifiedDate
+                        FROM Vehicles 
+                        WHERE VehicleId IN ({string.Join(",", vehicleIds)})";
+                    
+                    var vehicles = await connection.QueryAsync<Vehicle>(vehicleSql);
+                    var vehicleDict = vehicles.ToDictionary(v => v.VehicleId);
+                    
+                    // Assign vehicles to vouchers
+                    foreach (var voucher in voucherList)
+                    {
+                        if (vehicleDict.TryGetValue(voucher.VehicleId, out var vehicle))
+                        {
+                            voucher.Vehicle = vehicle;
+                        }
+                    }
+                }
+            }
+            
+            return voucherList;
+        }
+        catch (Exception ex)
+        {
+            // Log error but rethrow to let calling code handle it
+            System.Diagnostics.Debug.WriteLine($"Error loading vouchers: {ex.Message}");
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<Voucher>> GetRecentVouchersAsync(int companyId, int limit = 100)
+    {
+        var connection = await _dbConnection.GetConnectionAsync();
+        const string sql = @"
+            SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
+                   v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
+            FROM Vouchers v
+            LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
+            WHERE v.CompanyId = @CompanyId
+            ORDER BY v.Date DESC, v.VoucherNumber DESC
+            LIMIT @Limit";
+        
+        var vouchers = await connection.QueryAsync<Voucher, Vehicle, Voucher>(sql,
+            (voucher, vehicle) => 
+            {
+                voucher.Vehicle = vehicle;
+                return voucher;
+            },
+            new { CompanyId = companyId, Limit = limit },
+            splitOn: "VehId");
+            
+        return vouchers;
+    }
+
+    public async Task<IEnumerable<Voucher>> SearchVouchersAsync(int companyId, string searchTerm, int limit = 100)
+    {
+        var connection = await _dbConnection.GetConnectionAsync();
+        const string sql = @"
+            SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
+                   v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
+            FROM Vouchers v
+            LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
+            WHERE v.CompanyId = @CompanyId 
+            AND (ve.VehicleNumber LIKE @SearchTerm COLLATE NOCASE 
+                 OR v.Narration LIKE @SearchTerm COLLATE NOCASE)
+            ORDER BY v.Date DESC, v.VoucherNumber DESC
+            LIMIT @Limit";
+        
+        var searchPattern = $"%{searchTerm}%";
+        var vouchers = await connection.QueryAsync<Voucher, Vehicle, Voucher>(sql,
+            (voucher, vehicle) => 
+            {
+                voucher.Vehicle = vehicle;
+                return voucher;
+            },
+            new { CompanyId = companyId, SearchTerm = searchPattern, Limit = limit },
+            splitOn: "VehId");
+            
+        return vouchers;
     }
 
     public async Task<IEnumerable<Voucher>> GetByDateRangeAsync(int companyId, DateTime startDate, DateTime endDate)
@@ -180,13 +302,25 @@ public class VoucherRepository : IVoucherRepository
     {
         var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
-            SELECT VoucherId, CompanyId, VoucherNumber, Date, VehicleId, 
-                   Amount, DrCr, Narration, CreatedDate, ModifiedDate
-            FROM Vouchers 
-            WHERE VehicleId = @VehicleId
-            ORDER BY Date DESC, VoucherNumber DESC";
+            SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
+                   v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
+                   ve.VehicleId, ve.CompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.IsActive, ve.CreatedDate, ve.ModifiedDate
+            FROM Vouchers v
+            LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
+            WHERE v.VehicleId = @VehicleId
+            ORDER BY v.Date DESC, v.VoucherNumber DESC";
         
-        return await connection.QueryAsync<Voucher>(sql, new { VehicleId = vehicleId });
+        var vouchers = await connection.QueryAsync<Voucher, Vehicle, Voucher>(sql,
+            (voucher, vehicle) => 
+            {
+                voucher.Vehicle = vehicle;
+                return voucher;
+            },
+            new { VehicleId = vehicleId },
+            splitOn: "VehicleId");
+            
+        return vouchers;
     }
 
     public async Task<IEnumerable<Voucher>> GetVehicleLedgerAsync(int vehicleId, DateTime? startDate = null, DateTime? endDate = null)
@@ -299,6 +433,14 @@ public class VoucherRepository : IVoucherRepository
 
         var count = await connection.QuerySingleAsync<int>(sql, parameters);
         return count == 0;
+    }
+
+    public async Task<int> CountByCompanyAsync(int companyId)
+    {
+        var connection = await _dbConnection.GetConnectionAsync();
+        const string sql = "SELECT COUNT(*) FROM Vouchers WHERE CompanyId = @CompanyId";
+        
+        return await connection.QuerySingleAsync<int>(sql, new { CompanyId = companyId });
     }
 
     public async Task<decimal> GetVehicleBalanceAsync(int vehicleId, DateTime? upToDate = null)

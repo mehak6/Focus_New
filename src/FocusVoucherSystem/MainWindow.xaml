@@ -1,4 +1,4 @@
-﻿<Window x:Class="FocusVoucherSystem.MainWindow"
+<Window x:Class="FocusVoucherSystem.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -91,19 +91,19 @@
             <!-- Tab Navigation Bar -->
             <Border Grid.Row="0" Background="#f8f9fa" BorderBrush="#dee2e6" BorderThickness="0,0,0,1" Padding="10,8">
                 <StackPanel Orientation="Horizontal">
-                    <Button Content="📋 Voucher Entry" 
+                    <Button Content="?? Voucher Entry" 
                             Style="{StaticResource TabButtonStyle}"
                             Command="{Binding NavigateToVoucherEntryCommand}"
                             ToolTip="F2 - Add vouchers and manage entries"/>
-                    <Button Content="🚗 Vehicle Management" 
+                    <Button Content="?? Vehicle Management" 
                             Style="{StaticResource TabButtonStyle}"
                             Command="{Binding NavigateToVehicleManagementCommand}"
                             ToolTip="F1 - Manage vehicles and accounts"/>
-                    <Button Content="📊 Reports" 
+                    <Button Content="?? Reports" 
                             Style="{StaticResource TabButtonStyle}"
                             Command="{Binding NavigateToReportsCommand}"
                             ToolTip="F3 - View and print reports"/>
-                    <Button Content="🔧 Utilities" 
+                    <Button Content="?? Utilities" 
                             Style="{StaticResource TabButtonStyle}"
                             Command="{Binding NavigateToUtilitiesCommand}"
                             ToolTip="F4 - System utilities and settings"/>
@@ -165,3 +165,5 @@
         </Grid>
     </DockPanel>
 </Window>
+
+

@@ -18,7 +18,7 @@ public class CompanyRepository : ICompanyRepository
 
     public async Task<Company?> GetByIdAsync(int id)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT CompanyId, Name, FinancialYearStart, FinancialYearEnd, 
                    LastVoucherNumber, IsActive, CreatedDate, ModifiedDate
@@ -136,7 +136,7 @@ public class CompanyRepository : ICompanyRepository
 
     public async Task<int> GetNextVoucherNumberAsync(int companyId)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = "SELECT LastVoucherNumber + 1 FROM Companies WHERE CompanyId = @CompanyId";
         
         return await connection.QuerySingleAsync<int>(sql, new { CompanyId = companyId });
@@ -144,11 +144,14 @@ public class CompanyRepository : ICompanyRepository
 
     public async Task UpdateLastVoucherNumberAsync(int companyId, int voucherNumber)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             UPDATE Companies 
-            SET LastVoucherNumber = @VoucherNumber, ModifiedDate = @ModifiedDate
-            WHERE CompanyId = @CompanyId AND @VoucherNumber > LastVoucherNumber";
+            SET LastVoucherNumber = CASE 
+                WHEN @VoucherNumber > LastVoucherNumber THEN @VoucherNumber 
+                ELSE LastVoucherNumber 
+            END, ModifiedDate = @ModifiedDate
+            WHERE CompanyId = @CompanyId";
 
         await connection.ExecuteAsync(sql, new 
         { 

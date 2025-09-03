@@ -1,5 +1,6 @@
 using FocusVoucherSystem.Data;
 using FocusVoucherSystem.Data.Repositories;
+using Dapper;
 
 namespace FocusVoucherSystem.Services;
 
@@ -50,6 +51,27 @@ public class DataService : IDisposable
         if (!exists)
         {
             await _dbConnection.InitializeDatabaseAsync();
+        }
+    }
+
+    /// <summary>
+    /// Clears all vouchers and vehicles for a company and resets voucher numbering
+    /// </summary>
+    public async Task ClearCompanyDataAsync(int companyId)
+    {
+        var connection = await _dbConnection.GetConnectionAsync();
+        using var tx = connection.BeginTransaction();
+        try
+        {
+            await connection.ExecuteAsync("DELETE FROM Vouchers WHERE CompanyId = @CompanyId", new { CompanyId = companyId }, tx);
+            await connection.ExecuteAsync("DELETE FROM Vehicles WHERE CompanyId = @CompanyId", new { CompanyId = companyId }, tx);
+            await connection.ExecuteAsync("UPDATE Companies SET LastVoucherNumber = 0 WHERE CompanyId = @CompanyId", new { CompanyId = companyId }, tx);
+            tx.Commit();
+        }
+        catch
+        {
+            try { tx.Rollback(); } catch { }
+            throw;
         }
     }
 
