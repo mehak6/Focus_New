@@ -19,13 +19,21 @@ public partial class SearchView : UserControl
     }
 
     /// <summary>
+    /// Capture arrow/enter before TextBox default handling
+    /// </summary>
+    private void VehicleSearchBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        VehicleSearchBox_KeyDown(sender, e);
+    }
+
+    /// <summary>
     /// Handles keyboard navigation in the vehicle search box
     /// </summary>
     private void VehicleSearchBox_KeyDown(object sender, KeyEventArgs e)
     {
         if (DataContext is not SearchViewModel viewModel) return;
 
-        // Simple keyboard navigation
+        // Keyboard navigation for the popup results
         switch (e.Key)
         {
             case Key.Down:
@@ -34,11 +42,15 @@ public partial class SearchView : UserControl
                     var currentIndex = VehicleSearchListBox.SelectedIndex;
                     var newIndex = (currentIndex + 1) % viewModel.VehicleSearchResults.Count;
                     VehicleSearchListBox.SelectedIndex = newIndex;
+                    VehicleSearchListBox.ScrollIntoView(VehicleSearchListBox.SelectedItem);
+                    Keyboard.Focus(VehicleSearchListBox);
                 }
                 else if (viewModel.VehicleSearchResults.Count > 0)
                 {
                     viewModel.IsVehicleSearchOpen = true;
                     VehicleSearchListBox.SelectedIndex = 0;
+                    VehicleSearchListBox.ScrollIntoView(VehicleSearchListBox.SelectedItem);
+                    Keyboard.Focus(VehicleSearchListBox);
                 }
                 e.Handled = true;
                 break;
@@ -49,6 +61,8 @@ public partial class SearchView : UserControl
                     var currentIndex = VehicleSearchListBox.SelectedIndex;
                     var newIndex = currentIndex <= 0 ? viewModel.VehicleSearchResults.Count - 1 : currentIndex - 1;
                     VehicleSearchListBox.SelectedIndex = newIndex;
+                    VehicleSearchListBox.ScrollIntoView(VehicleSearchListBox.SelectedItem);
+                    Keyboard.Focus(VehicleSearchListBox);
                 }
                 e.Handled = true;
                 break;
@@ -79,6 +93,8 @@ public partial class SearchView : UserControl
             viewModel.VehicleSearchTerm = vehicle.DisplayName;
             viewModel.IsVehicleSearchOpen = false;
             viewModel.SelectedVehicle = vehicle;
+            // Return focus to the textbox so user can keep typing
+            Keyboard.Focus(VehicleSearchBox);
         }
     }
 
@@ -87,10 +103,34 @@ public partial class SearchView : UserControl
     /// </summary>
     private void VehicleSearchListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
-        // Handle mouse selection - select vehicle when clicked
-        if (e.AddedItems.Count > 0 && e.AddedItems[0] is VehicleDisplayItem selectedVehicle)
+        // Commit only when selection is made via mouse; arrow keys just highlight
+        if (Mouse.LeftButton == MouseButtonState.Pressed)
         {
-            SelectVehicle(selectedVehicle);
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] is VehicleDisplayItem selectedVehicle)
+            {
+                SelectVehicle(selectedVehicle);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Handle Enter/Escape when focus is on the ListBox (popup)
+    /// </summary>
+    private void VehicleSearchListBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && VehicleSearchListBox.SelectedItem is VehicleDisplayItem selected)
+        {
+            SelectVehicle(selected);
+            e.Handled = true;
+        }
+        else if (e.Key == Key.Escape)
+        {
+            if (DataContext is SearchViewModel vm)
+            {
+                vm.IsVehicleSearchOpen = false;
+            }
+            Keyboard.Focus(VehicleSearchBox);
+            e.Handled = true;
         }
     }
 

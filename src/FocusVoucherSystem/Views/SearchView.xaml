@@ -94,6 +94,7 @@
                              Text="{Binding VehicleSearchTerm, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource InputStyle}" 
                              ToolTip="Type vehicle number or description to search"
+                             PreviewKeyDown="VehicleSearchBox_PreviewKeyDown"
                              KeyDown="VehicleSearchBox_KeyDown"/>
                     
                     <!-- Vehicle Search Results Popup -->
@@ -110,6 +111,7 @@
                                      ItemsSource="{Binding VehicleSearchResults}"
                                      SelectedItem="{Binding SelectedVehicleFromSearch}"
                                      Background="Transparent" BorderThickness="0"
+                                     PreviewKeyDown="VehicleSearchListBox_PreviewKeyDown"
                                      SelectionChanged="VehicleSearchListBox_SelectionChanged">
                                 <ListBox.ItemContainerStyle>
                                     <Style TargetType="ListBoxItem">
