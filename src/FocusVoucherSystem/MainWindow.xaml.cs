@@ -3,6 +3,7 @@ using System.Windows.Input;
 using FocusVoucherSystem.ViewModels;
 using FocusVoucherSystem.Services;
 using FocusVoucherSystem.Views;
+using FocusVoucherSystem.Models;
 
 namespace FocusVoucherSystem;
 
@@ -16,42 +17,61 @@ public partial class MainWindow : Window
     private readonly HotkeyService _hotkeyService;
     private readonly DataService _dataService;
 
-    public MainWindow()
+    public MainWindow(DataService dataService, Company selectedCompany)
     {
+        System.Diagnostics.Debug.WriteLine($"MainWindow constructor: Started with company {selectedCompany?.Name}");
         InitializeComponent();
-        
-        // Initialize services
-        _dataService = new DataService();
+
+        // Use provided services
+        _dataService = dataService;
         _navigationService = new NavigationService();
         _hotkeyService = new HotkeyService();
-        
+
         // Create and set ViewModel
         _viewModel = new MainWindowViewModel(_dataService, _navigationService, _hotkeyService);
         DataContext = _viewModel;
-        
+
+        // Set the current company
+        _viewModel.CurrentCompany = selectedCompany;
+        _viewModel.Title = $"Focus Voucher System - {selectedCompany.Name}";
+
+        System.Diagnostics.Debug.WriteLine($"MainWindow constructor: Set company to {selectedCompany.Name}");
+
         // Set up navigation host
         _navigationService.SetNavigationHost(ContentHost);
         _navigationService.SetDataService(_dataService);
-        
+
         // Register views
         RegisterViews();
-        
-        // Initialize the application
+
+        System.Diagnostics.Debug.WriteLine($"MainWindow constructor: Completed initialization");
+
+        // Initialize the application (simplified since company is already selected)
         Loaded += MainWindow_Loaded;
         Closed += MainWindow_Closed;
     }
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
+        System.Diagnostics.Debug.WriteLine($"MainWindow_Loaded: Started");
         try
         {
-            await _viewModel.InitializeAsync();
+            // Company is already selected, just initialize UI components
+            _viewModel.StatusMessage = "Application ready";
+
+            System.Diagnostics.Debug.WriteLine($"MainWindow_Loaded: About to navigate to VoucherEntry");
+
             // Navigate to default view (Voucher Entry) on startup
             await _navigationService.NavigateToAsync("VoucherEntry", _viewModel.CurrentCompany);
+
+            System.Diagnostics.Debug.WriteLine($"MainWindow_Loaded: Navigation completed successfully");
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"Failed to initialize application: {ex.Message}", "Error", 
+            System.Diagnostics.Debug.WriteLine($"MainWindow_Loaded: ERROR - {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+
+            MessageBox.Show($"Failed to initialize application: {ex.Message}", "Error",
                 MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
@@ -61,7 +81,7 @@ public partial class MainWindow : Window
         try
         {
             _viewModel?.Cleanup();
-            _dataService?.Dispose();
+            // Note: DataService disposal is handled by App.xaml.cs
         }
         catch
         {

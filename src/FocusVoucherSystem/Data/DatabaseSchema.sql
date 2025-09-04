@@ -100,44 +100,17 @@ CREATE INDEX idx_settings_key ON Settings(Key);
 
 -- =============================================================================
 -- INITIAL DATA SETUP
--- Default company and configuration
+-- Application settings only - no sample data
 -- =============================================================================
-
--- Default company setup
-INSERT INTO Companies (Name, FinancialYearStart, FinancialYearEnd) 
-VALUES ('Default Company', '2024-04-01', '2025-03-31');
 
 -- Initial application settings
 INSERT INTO Settings (Key, Value, Description) VALUES 
 ('DatabaseVersion', '1.0.0', 'Database schema version'),
-('DefaultCompanyId', '1', 'Default company for new sessions'),
 ('DateFormat', 'dd/MM/yyyy', 'Display date format'),
 ('DecimalPlaces', '2', 'Amount decimal places'),
 ('BackupRetentionDays', '30', 'Days to keep backup files'),
 ('ExportDirectory', 'Exports/', 'Default export location'),
 ('FirstRun', 'true', 'Indicates if this is the first application run');
-
--- =============================================================================
--- SAMPLE DATA (for development and testing)
--- Remove or modify for production deployment
--- =============================================================================
-
--- Sample vehicles
-INSERT INTO Vehicles (CompanyId, VehicleNumber, Description) VALUES
-(1, 'CASH', 'Cash Account'),
-(1, 'BANK', 'Bank Account'),
-(1, 'AP-01-AB-1234', 'Truck - Logistics'),
-(1, 'UP-32-CD-5678', 'Van - Local Delivery');
-
--- Sample vouchers
-INSERT INTO Vouchers (CompanyId, VoucherNumber, Date, VehicleId, Amount, DrCr, Narration) VALUES
-(1, 1, '2024-01-01', 1, 5000.00, 'D', 'Opening balance'),
-(1, 2, '2024-01-01', 2, 15000.00, 'C', 'Bank deposit'),
-(1, 3, '2024-01-02', 3, 2500.50, 'D', 'Fuel expense'),
-(1, 4, '2024-01-02', 4, 1800.75, 'C', 'Service income');
-
--- Update last voucher number
-UPDATE Companies SET LastVoucherNumber = 4 WHERE CompanyId = 1;
 
 -- =============================================================================
 -- TRIGGERS FOR AUDIT TRAIL

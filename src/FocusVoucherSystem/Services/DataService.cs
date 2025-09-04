@@ -11,7 +11,7 @@ public class DataService : IDisposable
 {
     private readonly DatabaseConnection _dbConnection;
 
-    public DataService(string databasePath = "Data/FocusVoucher.db")
+    public DataService(string databasePath = null)
     {
         _dbConnection = new DatabaseConnection(databasePath);
         

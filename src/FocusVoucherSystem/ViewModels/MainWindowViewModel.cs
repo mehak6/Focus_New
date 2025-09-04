@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using FocusVoucherSystem.Services;
 using FocusVoucherSystem.Models;
+using FocusVoucherSystem.Views;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.Windows;
@@ -45,23 +46,17 @@ public partial class MainWindowViewModel : BaseViewModel, INavigationAware
     }
 
     /// <summary>
-    /// Initializes the main window
+    /// Initializes the main window (simplified version)
     /// </summary>
     public async Task InitializeAsync()
     {
         await ExecuteAsync(async () =>
         {
-            // Initialize database
-            await _dataService.InitializeDatabaseAsync();
-            
-            // Load companies
+            // Load companies for the dropdown
             await LoadCompaniesAsync();
-            
-            // Set default company
-            await SetDefaultCompanyAsync();
-            
+
             StatusMessage = "Application initialized successfully";
-            
+
         }, "Initializing application...");
     }
 
@@ -75,6 +70,94 @@ public partial class MainWindowViewModel : BaseViewModel, INavigationAware
         foreach (var company in companies)
         {
             Companies.Add(company);
+        }
+    }
+
+    /// <summary>
+    /// Checks if any companies exist and prompts user to create one if none exist
+    /// </summary>
+    private async Task<bool> EnsureCompanyExistsAsync()
+    {
+        StatusMessage = $"Checking companies... Found {Companies.Count} companies";
+        
+        if (Companies.Any())
+        {
+            StatusMessage = $"Companies exist: {string.Join(", ", Companies.Select(c => c.Name))}";
+            return true; // Companies already exist
+        }
+
+        StatusMessage = "No companies found - showing creation dialog";
+
+        // No companies found, prompt user to create one
+        var result = MessageBox.Show(
+            "No companies found in the database. Would you like to create a new company?",
+            "Create Company",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Information);
+
+        if (result == MessageBoxResult.Yes)
+        {
+            // Prompt for company name using custom dialog
+            var inputDialog = new Views.CompanyInputDialog();
+            var dialogResult = inputDialog.ShowDialog();
+
+            if (dialogResult == true && !string.IsNullOrWhiteSpace(inputDialog.CompanyName))
+            {
+                await CreateInitialCompanyAsync(inputDialog.CompanyName);
+                return true;
+            }
+            else
+            {
+                MessageBox.Show("Company creation cancelled. Application will close.",
+                    "No Company Created", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return false;
+            }
+        }
+        else
+        {
+            MessageBox.Show("Cannot proceed without a company. Application will close.",
+                "No Company Created", MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Creates the initial company with default settings
+    /// </summary>
+    private async Task CreateInitialCompanyAsync(string companyName)
+    {
+        try
+        {
+            StatusMessage = $"Creating company: {companyName}";
+            
+            var currentDate = DateTime.Now;
+            var company = new Company
+            {
+                Name = companyName,
+                FinancialYearStart = new DateTime(currentDate.Year, 4, 1), // April 1st
+                FinancialYearEnd = new DateTime(currentDate.Year + 1, 3, 31), // March 31st next year
+                LastVoucherNumber = 0,
+                IsActive = true
+            };
+
+            var createdCompany = await _dataService.Companies.AddAsync(company);
+            Companies.Add(createdCompany);
+
+            // Set as current company
+            CurrentCompany = createdCompany;
+            Title = $"Focus Voucher System - {companyName}";
+
+            // Save as default company
+            await _dataService.Settings.SetValueAsync("DefaultCompanyId", createdCompany.CompanyId);
+
+            StatusMessage = $"Successfully created company: {companyName}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Failed to create company: {ex.Message}";
+            MessageBox.Show($"Failed to create company: {ex.Message}", "Error",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            throw; // Re-throw to stop application startup
         }
     }
 
@@ -330,5 +413,30 @@ public partial class MainWindowViewModel : BaseViewModel, INavigationAware
     {
         _hotkeyService.ClearAllHotkeys();
         base.Cleanup();
+    }
+
+    [RelayCommand]
+    private async Task OpenCompanySelection()
+    {
+        try
+        {
+            var vm = new CompanySelectionViewModel(_dataService);
+            var window = new CompanySelectionWindow(vm)
+            {
+                Owner = Application.Current?.MainWindow
+            };
+
+            await vm.InitializeAsync();
+
+            var result = window.ShowDialog();
+            if (result == true && window.ShouldContinue && window.SelectedCompany != null)
+            {
+                await ChangeCompany(window.SelectedCompany);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Error opening company selection: {ex.Message}";
+        }
     }
 }

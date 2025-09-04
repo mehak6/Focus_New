@@ -23,6 +23,7 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     private Voucher _currentVoucher = new();
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(DeleteVoucherCommand))]
     private Voucher? _selectedVoucher;
 
     [ObservableProperty]
@@ -397,6 +398,9 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             StatusMessage = $"Loaded voucher {value.VoucherNumber} for editing";
             IsVoucherNumberReadOnly = true;
         }
+
+        // Ensure Delete button updates its enabled state
+        DeleteVoucherCommand?.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -416,14 +420,29 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
 
     public async Task OnNavigatedToAsync(object? parameters)
     {
+        System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: Started with parameters: {(parameters?.ToString() ?? "null")}");
+
         if (parameters is Company company)
         {
+            System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: Company parameter found - {company.Name} (ID: {company.CompanyId})");
+
             CurrentCompany = company;
+            System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: CurrentCompany set");
+
             await LoadDataAsync();
+            System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: LoadDataAsync completed");
+
             // Initialize a new voucher with the company set
             InitializeNewVoucher();
             await SetNextVoucherNumberAsync();
+            System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: Voucher initialization completed");
         }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: No Company parameter found");
+        }
+
+        System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: Completed");
     }
 
     public async Task OnNavigatedFromAsync()

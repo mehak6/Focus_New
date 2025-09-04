@@ -89,6 +89,11 @@ public class Company
         return date >= FinancialYearStart && date <= FinancialYearEnd;
     }
 
+    /// <summary>
+    /// Gets a formatted display string for the financial year
+    /// </summary>
+    public string FinancialYearDisplay => $"FY: {FinancialYearStart:dd/MM/yyyy} - {FinancialYearEnd:dd/MM/yyyy}";
+
     public override string ToString()
     {
         return Name;

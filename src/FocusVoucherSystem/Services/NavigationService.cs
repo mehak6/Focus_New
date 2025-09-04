@@ -62,6 +62,8 @@ public class NavigationService
     /// <returns>True if navigation succeeded</returns>
     public async Task<bool> NavigateToAsync(string viewKey, object? parameters = null)
     {
+        System.Diagnostics.Debug.WriteLine($"NavigationService.NavigateToAsync: Starting navigation to {viewKey}");
+
         if (_navigationHost == null)
         {
             throw new InvalidOperationException("Navigation host not set. Call SetNavigationHost first.");
@@ -76,28 +78,41 @@ public class NavigationService
         {
             // Create view instance
             var viewType = _viewTypes[viewKey];
+            System.Diagnostics.Debug.WriteLine($"NavigationService.NavigateToAsync: Creating view of type {viewType.Name}");
+
             var view = Activator.CreateInstance(viewType) as UserControl;
-            
+
             if (view == null)
             {
                 throw new InvalidOperationException($"Failed to create view of type {viewType.Name}");
             }
 
+            System.Diagnostics.Debug.WriteLine($"NavigationService.NavigateToAsync: View created successfully");
+
             // Create and set ViewModel if registered
             if (_viewModelTypes.ContainsKey(viewKey))
             {
                 var viewModelType = _viewModelTypes[viewKey];
+                System.Diagnostics.Debug.WriteLine($"NavigationService.NavigateToAsync: Creating ViewModel of type {viewModelType.Name}");
+
                 var viewModel = CreateViewModel(viewModelType);
-                
+
                 if (viewModel != null)
                 {
+                    System.Diagnostics.Debug.WriteLine($"NavigationService.NavigateToAsync: Setting ViewModel as DataContext");
                     view.DataContext = viewModel;
-                    
+
                     // Initialize ViewModel with parameters
                     if (viewModel is INavigationAware navAware)
                     {
+                        System.Diagnostics.Debug.WriteLine($"NavigationService.NavigateToAsync: Calling OnNavigatedToAsync");
                         await navAware.OnNavigatedToAsync(parameters);
+                        System.Diagnostics.Debug.WriteLine($"NavigationService.NavigateToAsync: OnNavigatedToAsync completed");
                     }
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"NavigationService.NavigateToAsync: WARNING - ViewModel creation failed");
                 }
             }
 
@@ -108,18 +123,21 @@ public class NavigationService
             }
 
             // Set the view
+            System.Diagnostics.Debug.WriteLine($"NavigationService.NavigateToAsync: Setting navigation host content");
             _navigationHost.Content = view;
             CurrentView = viewKey;
 
             // Raise navigation event
             Navigated?.Invoke(this, new NavigationEventArgs(viewKey, parameters));
 
+            System.Diagnostics.Debug.WriteLine($"NavigationService.NavigateToAsync: Navigation to {viewKey} completed successfully");
             return true;
         }
         catch (Exception ex)
         {
             // Log error (in a real app, you'd use a logging framework)
-            System.Diagnostics.Debug.WriteLine($"Navigation failed: {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"NavigationService.NavigateToAsync: ERROR - {ex.Message}");
+            System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
             return false;
         }
     }

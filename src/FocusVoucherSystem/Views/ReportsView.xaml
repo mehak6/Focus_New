@@ -117,12 +117,8 @@
                         <Button Content="GENERATE" Command="{Binding GenerateReportCommand}"
                                 Style="{StaticResource PrimaryButtonStyle}" Width="100" Height="38" Margin="5,0"/>
 
-                        <!-- Export Buttons -->
+                        <!-- Export Buttons (Excel/PDF removed as requested) -->
                         <Button Content="CSV" Command="{Binding ExportCsvCommand}"
-                                Style="{StaticResource SecondaryButtonStyle}" Width="80" Height="38" Margin="5,0"/>
-                        <Button Content="EXCEL" Command="{Binding ExportExcelCommand}"
-                                Style="{StaticResource SecondaryButtonStyle}" Width="80" Height="38" Margin="5,0"/>
-                        <Button Content="PDF" Command="{Binding ExportPdfCommand}"
                                 Style="{StaticResource SecondaryButtonStyle}" Width="80" Height="38" Margin="5,0"/>
 
                         <!-- Print Button -->

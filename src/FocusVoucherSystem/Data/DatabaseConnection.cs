@@ -1,6 +1,7 @@
 using Microsoft.Data.Sqlite;
 using System.Data;
 using System.IO;
+using System.Text;
 
 namespace FocusVoucherSystem.Data;
 
@@ -12,8 +13,15 @@ public class DatabaseConnection : IDisposable
     private readonly string _connectionString;
     private SqliteConnection? _connection;
 
-    public DatabaseConnection(string databasePath = "Data/FocusVoucher.db")
+    public DatabaseConnection(string databasePath = null)
     {
+        // Default to same folder as exe
+        if (string.IsNullOrEmpty(databasePath))
+        {
+            var exeDirectory = AppDomain.CurrentDomain.BaseDirectory;
+            databasePath = Path.Combine(exeDirectory, "FocusVoucher.db");
+        }
+
         _connectionString = $"Data Source={databasePath};Cache=Shared";
     }
 
@@ -110,13 +118,15 @@ public class DatabaseConnection : IDisposable
 
             var schema = await File.ReadAllTextAsync(schemaPath);
             
-            // Split by semicolon and execute each statement
-            var statements = schema.Split(';', StringSplitOptions.RemoveEmptyEntries);
+            // Split by semicolon and execute each statement - improved parsing
+            var statements = SplitSqlStatements(schema);
             
             foreach (var statement in statements)
             {
                 var trimmedStatement = statement.Trim();
-                if (!string.IsNullOrEmpty(trimmedStatement) && !trimmedStatement.StartsWith("--"))
+                if (!string.IsNullOrEmpty(trimmedStatement) && 
+                    !trimmedStatement.StartsWith("--") && 
+                    !trimmedStatement.StartsWith("/*"))
                 {
                     try
                     {
@@ -126,7 +136,10 @@ public class DatabaseConnection : IDisposable
                     catch (Exception ex)
                     {
                         // Log the problematic statement for debugging
-                        throw new InvalidOperationException($"Failed to execute SQL statement: {trimmedStatement.Substring(0, Math.Min(100, trimmedStatement.Length))}...", ex);
+                        var preview = trimmedStatement.Length > 100 ? 
+                            trimmedStatement.Substring(0, 100) + "..." : 
+                            trimmedStatement;
+                        throw new InvalidOperationException($"Failed to execute SQL statement: {preview}", ex);
                     }
                 }
             }
@@ -198,6 +211,60 @@ public class DatabaseConnection : IDisposable
             transaction.Rollback();
             throw;
         }
+    }
+
+    /// <summary>
+    /// Splits SQL script into individual statements, handling multi-line statements properly
+    /// </summary>
+    private static List<string> SplitSqlStatements(string sql)
+    {
+        var statements = new List<string>();
+        var currentStatement = new StringBuilder();
+        var lines = sql.Split(new[] { '\r', '\n' }, StringSplitOptions.None);
+        
+        foreach (var line in lines)
+        {
+            var trimmedLine = line.Trim();
+            
+            // Skip empty lines and comments
+            if (string.IsNullOrEmpty(trimmedLine) || 
+                trimmedLine.StartsWith("--") || 
+                trimmedLine.StartsWith("/*"))
+            {
+                continue;
+            }
+            
+            currentStatement.AppendLine(line);
+            
+            // If line ends with semicolon, it's the end of a statement
+            if (trimmedLine.EndsWith(";"))
+            {
+                var statement = currentStatement.ToString().Trim();
+                if (!string.IsNullOrEmpty(statement))
+                {
+                    // Remove the trailing semicolon
+                    if (statement.EndsWith(";"))
+                    {
+                        statement = statement.Substring(0, statement.Length - 1).Trim();
+                    }
+                    
+                    if (!string.IsNullOrEmpty(statement))
+                    {
+                        statements.Add(statement);
+                    }
+                }
+                currentStatement.Clear();
+            }
+        }
+        
+        // Add any remaining statement
+        var finalStatement = currentStatement.ToString().Trim();
+        if (!string.IsNullOrEmpty(finalStatement))
+        {
+            statements.Add(finalStatement);
+        }
+        
+        return statements;
     }
 
     public void Dispose()

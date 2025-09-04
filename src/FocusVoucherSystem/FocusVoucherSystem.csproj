@@ -16,21 +16,23 @@
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <FileVersion>1.0.0.0</FileVersion>
     
-    <!-- Single-File Deployment -->
+    <!-- Optimized Deployment (WPF-compatible) -->
     <PublishSingleFile Condition="'$(Configuration)' == 'Release'">true</PublishSingleFile>
-    <SelfContained Condition="'$(Configuration)' == 'Release'">true</SelfContained>
+    <SelfContained Condition="'$(Configuration)' == 'Release'">false</SelfContained>
     <RuntimeIdentifier Condition="'$(Configuration)' == 'Release'">win-x64</RuntimeIdentifier>
     <PublishTrimmed>false</PublishTrimmed>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <PublishReadyToRun>false</PublishReadyToRun>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="ClosedXML" Version="0.102.2" />
+    <!-- Core Dependencies -->
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
     <PackageReference Include="Dapper" Version="2.1.35" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0" />
-    <PackageReference Include="QuestPDF" Version="2024.7.3" />
+    
+    <!-- Optional Export Dependencies (can be removed if not needed) -->
+    <!-- <PackageReference Include="ClosedXML" Version="0.102.2" /> -->
+    <!-- <PackageReference Include="QuestPDF" Version="2024.7.3" /> -->
   </ItemGroup>
 
   <ItemGroup>
@@ -41,6 +43,8 @@
 
   <ItemGroup>
     <Compile Remove="tests\**" />
+    <Compile Remove="DatabaseTest.cs" />
+    <Compile Remove="TestDbCheck.cs" />
   </ItemGroup>
 
 </Project>

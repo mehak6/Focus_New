@@ -140,6 +140,39 @@
                         </Setter.Value>
                     </Setter>
                 </Style>
+                
+                <!-- Default submenu item styling to ensure visibility -->
+                <Style TargetType="{x:Type MenuItem}">
+                    <!-- Default for submenu items -->
+                    <Setter Property="Background" Value="White"/>
+                    <Setter Property="Foreground" Value="#2d3748"/>
+                    <Setter Property="Padding" Value="10,6"/>
+                    
+                    <Style.Triggers>
+                        <!-- Keep top-level items white on dark bar -->
+                        <Trigger Property="Role" Value="TopLevelHeader">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="Padding" Value="12,6"/>
+                        </Trigger>
+                        <Trigger Property="Role" Value="TopLevelItem">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="Padding" Value="12,6"/>
+                        </Trigger>
+                        
+                        <!-- Hover/selection for submenu items -->
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter Property="Background" Value="#e9ecef"/>
+                            <Setter Property="Foreground" Value="#111827"/>
+                        </Trigger>
+                        
+                        <!-- Disabled state -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="#9aa0a6"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
             </Menu.Resources>
 
             <!-- Set menu style -->
@@ -151,19 +184,7 @@
             </Menu.Style>
 
             <MenuItem Header="_File">
-                <MenuItem Header="_New Company" Command="{Binding NewCompanyCommand}" ToolTip="Create a new company profile"/>
-                <MenuItem Header="_Switch Company" ItemsSource="{Binding Companies}">
-                    <MenuItem.ItemContainerStyle>
-                        <Style TargetType="MenuItem">
-                            <Setter Property="Header" Value="{Binding Name}"/>
-                            <Setter Property="Command" Value="{Binding DataContext.ChangeCompanyCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
-                            <Setter Property="CommandParameter" Value="{Binding}"/>
-                            <Setter Property="Background" Value="White"/>
-                            <Setter Property="Foreground" Value="#2d3748"/>
-                            <Setter Property="Padding" Value="10,6"/>
-                        </Style>
-                    </MenuItem.ItemContainerStyle>
-                </MenuItem>
+                <MenuItem Header="_Select Company..." Command="{Binding OpenCompanySelectionCommand}" ToolTip="Select or create a company"/>
                 <Separator/>
                 <MenuItem Header="_Import Legacy Data" Command="{Binding ImportDataCommand}" ToolTip="Import data from legacy system"/>
                 <MenuItem Header="_Export Data" Command="{Binding ExportDataCommand}" ToolTip="Export current data"/>
