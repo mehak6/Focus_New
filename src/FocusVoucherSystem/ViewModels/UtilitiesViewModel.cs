@@ -5,6 +5,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
 using Microsoft.Win32;
 using System.IO;
+using System.Globalization;
 
 namespace FocusVoucherSystem.ViewModels;
 
@@ -231,5 +232,120 @@ public partial class UtilitiesViewModel : BaseViewModel, INavigationAware
     partial void OnFolderPathChanged(string value)
     {
         _ = LoadPreviewAsync();
+    }
+
+    [RelayCommand]
+    private async Task BackupCsv()
+    {
+        if (SelectedCompany == null)
+        {
+            StatusMessage = "Select a company first.";
+            return;
+        }
+
+        // Ask user to choose a destination folder via SaveFileDialog (we'll use the folder part)
+        var dlg = new SaveFileDialog
+        {
+            Title = "Select destination folder for CSV backup",
+            Filter = "CSV Files (*.csv)|*.csv",
+            FileName = $"{SanitizeFileName(SelectedCompany.Name)}_backup_placeholder.csv",
+            OverwritePrompt = false
+        };
+
+        if (dlg.ShowDialog() != true)
+            return;
+
+        var destFolder = Path.GetDirectoryName(dlg.FileName);
+        if (string.IsNullOrWhiteSpace(destFolder))
+        {
+            StatusMessage = "Invalid destination folder.";
+            return;
+        }
+
+        SetBusy(true, "Exporting CSV backup...");
+        try
+        {
+            // Fetch data
+            var vehicles = await _dataService.Vehicles.GetByCompanyIdAsync(SelectedCompany.CompanyId);
+            // Use wide date range to include all vouchers
+            var vouchers = await _dataService.Vouchers.GetByDateRangeAsync(
+                SelectedCompany.CompanyId,
+                new DateTime(1900, 1, 1),
+                new DateTime(2100, 1, 1));
+
+            // Prepare filenames
+            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+            var companySlug = SanitizeFileName(SelectedCompany.Name);
+            var vehiclesCsvPath = Path.Combine(destFolder, $"{companySlug}_Vehicles_{timestamp}.csv");
+            var vouchersCsvPath = Path.Combine(destFolder, $"{companySlug}_Vouchers_{timestamp}.csv");
+
+            // Write Vehicles CSV
+            using (var sw = new StreamWriter(vehiclesCsvPath))
+            {
+                sw.WriteLine("VehicleId,VehicleNumber,Description,IsActive,CreatedDate,ModifiedDate");
+                foreach (var v in vehicles)
+                {
+                    sw.WriteLine(string.Join(',', new[]
+                    {
+                        v.VehicleId.ToString(CultureInfo.InvariantCulture),
+                        Csv(v.VehicleNumber),
+                        Csv(v.Description ?? string.Empty),
+                        v.IsActive ? "1" : "0",
+                        v.CreatedDate.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
+                        v.ModifiedDate.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)
+                    }));
+                }
+            }
+
+            // Write Vouchers CSV
+            using (var sw = new StreamWriter(vouchersCsvPath))
+            {
+                sw.WriteLine("VoucherId,VoucherNumber,Date,VehicleId,VehicleNumber,Amount,DrCr,Narration");
+                foreach (var v in vouchers)
+                {
+                    var vehicleNumber = v.Vehicle?.VehicleNumber ?? string.Empty;
+                    sw.WriteLine(string.Join(',', new[]
+                    {
+                        v.VoucherId.ToString(CultureInfo.InvariantCulture),
+                        v.VoucherNumber.ToString(CultureInfo.InvariantCulture),
+                        v.Date.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                        v.VehicleId.ToString(CultureInfo.InvariantCulture),
+                        Csv(vehicleNumber),
+                        v.Amount.ToString(CultureInfo.InvariantCulture),
+                        Csv(v.DrCr),
+                        Csv(v.Narration ?? string.Empty)
+                    }));
+                }
+            }
+
+            StatusMessage = $"Backup created: {Path.GetFileName(vehiclesCsvPath)}, {Path.GetFileName(vouchersCsvPath)}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Backup failed: {ex.Message}";
+        }
+        finally
+        {
+            SetBusy(false);
+        }
+    }
+
+    private static string Csv(string value)
+    {
+        if (value == null) return string.Empty;
+        var needsQuotes = value.Contains(',') || value.Contains('"') || value.Contains('\n') || value.Contains('\r');
+        if (needsQuotes)
+        {
+            value = value.Replace("\"", "\"\"");
+            return $"\"{value}\"";
+        }
+        return value;
+    }
+
+    private static string SanitizeFileName(string name)
+    {
+        foreach (var c in Path.GetInvalidFileNameChars())
+            name = name.Replace(c, '_');
+        return name.Trim();
     }
 }

@@ -186,9 +186,6 @@
             <MenuItem Header="_File">
                 <MenuItem Header="_Select Company..." Command="{Binding OpenCompanySelectionCommand}" ToolTip="Select or create a company"/>
                 <Separator/>
-                <MenuItem Header="_Import Legacy Data" Command="{Binding ImportDataCommand}" ToolTip="Import data from legacy system"/>
-                <MenuItem Header="_Export Data" Command="{Binding ExportDataCommand}" ToolTip="Export current data"/>
-                <Separator/>
                 <MenuItem Header="E_xit" Command="{Binding ExitCommand}" ToolTip="Exit the application" InputGestureText="Alt+F4"/>
             </MenuItem>
             <MenuItem Header="_View">

@@ -89,6 +89,8 @@
                             Style="{StaticResource PrimaryButtonStyle}" ToolTip="Execute the actual import"/>
                     <Button Content="CLEAR DATA" Command="{Binding ClearDatabaseCommand}" Margin="10,0,0,0"
                             Style="{StaticResource DangerButtonStyle}" ToolTip="Remove all company data (DANGER!)"/>
+                    <Button Content="BACKUP CSV" Command="{Binding BackupCsvCommand}" Margin="10,0,0,0"
+                            Style="{StaticResource SecondaryButtonStyle}" ToolTip="Export all vehicles and vouchers to CSV files"/>
                     <Border Margin="20,0,0,0" VerticalAlignment="Stretch" Background="#dee2e6" Width="1"/>
                     <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Margin="20,0,0,0" FontStyle="Italic"/>
                 </StackPanel>

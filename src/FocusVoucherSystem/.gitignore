@@ -1,5 +1,49 @@
-# Git ignore
-# Ignore Windows device filename accidentally created
-null
-nul
+## General
+*.log
+*.tmp
+*.temp
+*.bak
+Thumbs.db
+.DS_Store
 
+## Visual Studio / .NET build outputs
+bin/
+obj/
+.vs/
+TestResults/
+
+## User-specific files
+*.user
+*.suo
+*.userprefs
+*.rsuser
+*.sln.docstates
+
+## NuGet
+*.nupkg
+*.snupkg
+packages/
+
+## Rider/JetBrains (optional if used)
+.idea/
+
+## Coverage and diagnostics
+*.coverage*
+*.coverage
+*.trx
+*.sarif
+
+## WPF generated
+*.g.cs
+*.g.i.cs
+
+## Keep these tracked (do not ignore)
+!/.vscode/
+!/.claude/
+
+## Release artifacts
+*.zip
+*.7z
+*.tar.gz
+FocusVoucherSystem-*.zip
+nul
