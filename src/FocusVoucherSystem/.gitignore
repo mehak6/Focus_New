@@ -1,0 +1,5 @@
+# Git ignore
+# Ignore Windows device filename accidentally created
+null
+nul
+
