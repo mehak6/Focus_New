@@ -14,20 +14,44 @@
     <Window.Resources>
         <!-- Global Styles -->
         <Style x:Key="TabButtonStyle" TargetType="Button">
-            <Setter Property="Padding" Value="15,8"/>
-            <Setter Property="Margin" Value="2,0"/>
-            <Setter Property="Background" Value="#f0f0f0"/>
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="Margin" Value="3,0"/>
+            <Setter Property="Background" Value="#f8f9fa"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="BorderBrush" Value="#ccc"/>
+            <Setter Property="BorderBrush" Value="#dee2e6"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
-            <Style.Triggers>
-                <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#e0e0e0"/>
-                </Trigger>
-                <DataTrigger Binding="{Binding IsPressed, RelativeSource={RelativeSource Self}}" Value="True">
-                    <Setter Property="Background" Value="#d0d0d0"/>
-                </DataTrigger>
-            </Style.Triggers>
+            <Setter Property="Foreground" Value="#495057"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter x:Name="ContentPresenter"
+                                            Content="{TemplateBinding Content}"
+                                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#e9ecef"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#adb5bd"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#dee2e6"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#6c757d"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         
         <Style x:Key="StatusBarStyle" TargetType="StatusBar">
@@ -89,25 +113,25 @@
             </Grid.RowDefinitions>
 
             <!-- Tab Navigation Bar -->
-            <Border Grid.Row="0" Background="#f8f9fa" BorderBrush="#dee2e6" BorderThickness="0,0,0,1" Padding="10,8">
+            <Border Grid.Row="0" Background="#ffffff" BorderBrush="#e1e5e9" BorderThickness="0,0,0,1" Padding="15,12">
                 <StackPanel Orientation="Horizontal">
-                    <Button Content="?? Voucher Entry" 
+                    <Button Content="VOUCHER ENTRY"
                             Style="{StaticResource TabButtonStyle}"
                             Command="{Binding NavigateToVoucherEntryCommand}"
                             ToolTip="F2 - Add vouchers and manage entries"/>
-                    <Button Content="?? Vehicle Management" 
+                    <Button Content="VEHICLE MANAGEMENT"
                             Style="{StaticResource TabButtonStyle}"
                             Command="{Binding NavigateToVehicleManagementCommand}"
                             ToolTip="F1 - Manage vehicles and accounts"/>
-                    <Button Content="?? Search" 
+                    <Button Content="SEARCH"
                             Style="{StaticResource TabButtonStyle}"
                             Command="{Binding NavigateToSearchCommand}"
                             ToolTip="F3 - Search vouchers by vehicle"/>
-                    <Button Content="?? Reports" 
+                    <Button Content="REPORTS"
                             Style="{StaticResource TabButtonStyle}"
                             Command="{Binding NavigateToReportsCommand}"
                             ToolTip="F4 - View and print reports"/>
-                    <Button Content="?? Utilities" 
+                    <Button Content="UTILITIES"
                             Style="{StaticResource TabButtonStyle}"
                             Command="{Binding NavigateToUtilitiesCommand}"
                             ToolTip="System utilities and settings"/>
@@ -169,5 +193,3 @@
         </Grid>
     </DockPanel>
 </Window>
-
-

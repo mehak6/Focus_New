@@ -74,8 +74,8 @@
                 </Grid.ColumnDefinitions>
                 
                 <StackPanel Grid.Column="0">
-                    <TextBlock Text="📋 Voucher Entry" Style="{StaticResource HeaderTextStyle}"/>
-                    <TextBlock Text="Manage voucher entries with Dr/Cr transactions" 
+                    <TextBlock Text="VOUCHER ENTRY" Style="{StaticResource HeaderTextStyle}"/>
+                    <TextBlock Text="Manage voucher entries with Dr/Cr transactions"
                               FontSize="12" Foreground="#718096"/>
                 </StackPanel>
                 
@@ -86,10 +86,10 @@
                              Padding="8,5" BorderBrush="#cbd5e0" BorderThickness="1" Margin="0,0,10,0"
                              ToolTip="Enter voucher number to search (Press Enter to search)"
                              KeyDown="SearchVoucherTextBox_KeyDown"/>
-                    <Button Content="🔍 Search" Command="{Binding SearchVoucherCommand}" 
+                    <Button Content="SEARCH" Command="{Binding SearchVoucherCommand}"
                             CommandParameter="{Binding ElementName=SearchVoucherTextBox, Path=Text}"
                             Style="{StaticResource SecondaryButtonStyle}" Height="30" Margin="0,0,10,0"/>
-                    <Button Content="🔄 Reset" Command="{Binding ResetViewCommand}" 
+                    <Button Content="RESET" Command="{Binding ResetViewCommand}"
                             Style="{StaticResource SecondaryButtonStyle}" Height="30"/>
                 </StackPanel>
             </Grid>
@@ -164,12 +164,12 @@
                     
                     <!-- Action Buttons -->
                     <StackPanel Grid.Column="9" Orientation="Horizontal">
-                        <Button Content="💾 Save (F5)" Command="{Binding SaveVoucherCommand}" 
-                                Style="{StaticResource PrimaryButtonStyle}" ToolTip="Save current voucher"/>
-                        <Button Content="➕ New (F2)" Command="{Binding NewVoucherCommand}" 
-                                Style="{StaticResource SecondaryButtonStyle}" ToolTip="Create new voucher"/>
-                        <Button Content="🗑️ Delete (F8)" Command="{Binding DeleteVoucherCommand}" 
-                                Style="{StaticResource DangerButtonStyle}" ToolTip="Delete selected voucher"/>
+                    <Button Content="SAVE (F5)" Command="{Binding SaveVoucherCommand}"
+                            Style="{StaticResource PrimaryButtonStyle}" ToolTip="Save current voucher"/>
+                    <Button Content="NEW (F2)" Command="{Binding NewVoucherCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}" ToolTip="Create new voucher"/>
+                    <Button Content="DELETE (F8)" Command="{Binding DeleteVoucherCommand}"
+                            Style="{StaticResource DangerButtonStyle}" ToolTip="Delete selected voucher"/>
                     </StackPanel>
                 </Grid>
             </Grid>

@@ -70,8 +70,8 @@
         <!-- Header -->
         <Border Grid.Row="0" Background="#f7fafc" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="20,15">
             <StackPanel>
-                <TextBlock Text="🔍 Search Vouchers" Style="{StaticResource HeaderTextStyle}"/>
-                <TextBlock Text="Search and manage vouchers by vehicle with real-time updates" 
+                <TextBlock Text="SEARCH VOUCHERS" Style="{StaticResource HeaderTextStyle}"/>
+                <TextBlock Text="Search and manage vouchers by vehicle with real-time updates"
                           FontSize="12" Foreground="#718096"/>
             </StackPanel>
         </Border>
@@ -151,7 +151,7 @@
                         Style="{StaticResource SecondaryButtonStyle}" Width="80"/>
                 
                 <StackPanel Grid.Column="5" Orientation="Horizontal">
-                    <Button Content="🔄 Refresh" Command="{Binding RefreshDataCommand}" 
+                    <Button Content="REFRESH" Command="{Binding RefreshDataCommand}"
                             Style="{StaticResource SecondaryButtonStyle}"/>
                 </StackPanel>
             </Grid>
@@ -229,9 +229,9 @@
                     
                     <!-- Action Buttons -->
                     <StackPanel Grid.Column="9" Orientation="Horizontal">
-                        <Button Content="💾 Update" Command="{Binding UpdateVoucherCommand}" 
+                        <Button Content="UPDATE" Command="{Binding UpdateVoucherCommand}"
                                 Style="{StaticResource PrimaryButtonStyle}" ToolTip="Update voucher"/>
-                        <Button Content="❌ Cancel" Command="{Binding CancelEditCommand}" 
+                        <Button Content="CANCEL" Command="{Binding CancelEditCommand}"
                                 Style="{StaticResource SecondaryButtonStyle}" ToolTip="Cancel editing"/>
                     </StackPanel>
                 </Grid>
@@ -341,12 +341,13 @@
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <Button Content="📝" Command="{Binding DataContext.EditVoucherCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                        CommandParameter="{Binding}" ToolTip="Edit Voucher" 
-                                        Width="30" Height="25" FontSize="12" Margin="2,0"/>
-                                <Button Content="🗑️" Command="{Binding DataContext.DeleteVoucherCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                <Button Content="EDIT" Command="{Binding DataContext.EditVoucherCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" ToolTip="Edit Voucher"
+                                        Width="60" Height="30" FontSize="12" Margin="2,0" Padding="8,4"
+                                        Background="#4299e1" Foreground="White" BorderBrush="#3182ce"/>
+                                <Button Content="DELETE" Command="{Binding DataContext.DeleteVoucherCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                         CommandParameter="{Binding}" ToolTip="Delete Voucher"
-                                        Width="30" Height="25" FontSize="12" Margin="2,0"
+                                        Width="70" Height="30" FontSize="12" Margin="2,0" Padding="8,4"
                                         Background="#e53e3e" Foreground="White" BorderBrush="#c53030"/>
                             </StackPanel>
                         </DataTemplate>

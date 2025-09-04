@@ -7,6 +7,40 @@
              mc:Ignorable="d">
     <UserControl.Resources>
         <local:BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#2d3748"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5,0"/>
+            <Setter Property="Background" Value="#4299e1"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3182ce"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5,0"/>
+            <Setter Property="Background" Value="#e2e8f0"/>
+            <Setter Property="Foreground" Value="#2d3748"/>
+            <Setter Property="BorderBrush" Value="#cbd5e0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style x:Key="DangerButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5,0"/>
+            <Setter Property="Background" Value="#e53e3e"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#c53030"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
     </UserControl.Resources>
     <Grid Background="White" Margin="20">
         <Grid.RowDefinitions>
@@ -15,7 +49,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="Utilities" FontSize="20" FontWeight="SemiBold"/>
+        <TextBlock Text="UTILITIES" Style="{StaticResource HeaderTextStyle}" FontSize="18"/>
 
         <Border Grid.Row="1" Padding="12" Margin="0,12,0,12" BorderBrush="#e2e8f0" BorderThickness="1" Background="#f8fafc">
             <Grid>
@@ -33,7 +67,8 @@
 
                 <TextBlock Grid.Column="3" Text="Legacy Folder:" VerticalAlignment="Center" Margin="0,0,8,0"/>
                 <TextBox Grid.Column="4" Text="{Binding FolderPath}" Height="28"/>
-                <Button Grid.Column="5" Content="Browse..." Padding="12,4" Margin="8,0,0,0" Command="{Binding BrowseFolderCommand}"/>
+                <Button Grid.Column="5" Content="BROWSE..." Padding="12,4" Margin="8,0,0,0" Command="{Binding BrowseFolderCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}" Height="28"/>
             </Grid>
         </Border>
 
@@ -44,14 +79,20 @@
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                <CheckBox Content="Dry run" IsChecked="{Binding DryRun}" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                <CheckBox Content="Create missing vehicles" IsChecked="{Binding CreateMissingVehicles}" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                <Button Content="Dry Run Import" Padding="16,6" Command="{Binding DryRunImportCommand}"/>
-                <Button Content="Run Import" Padding="16,6" Margin="10,0,0,0" Command="{Binding RunImportCommand}"/>
-                <Button Content="Clear Company Data" Padding="16,6" Margin="10,0,0,0" Command="{Binding ClearDatabaseCommand}"/>
-                <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Margin="20,0,0,0"/>
-            </StackPanel>
+            <Border Background="#f7fafc" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="15">
+                <StackPanel Orientation="Horizontal" Margin="0">
+                    <CheckBox Content="Dry run" IsChecked="{Binding DryRun}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <CheckBox Content="Create missing vehicles" IsChecked="{Binding CreateMissingVehicles}" VerticalAlignment="Center" Margin="0,0,20,0"/>
+                    <Button Content="DRY RUN" Command="{Binding DryRunImportCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}" ToolTip="Test import without making changes"/>
+                    <Button Content="RUN IMPORT" Command="{Binding RunImportCommand}" Margin="10,0,0,0"
+                            Style="{StaticResource PrimaryButtonStyle}" ToolTip="Execute the actual import"/>
+                    <Button Content="CLEAR DATA" Command="{Binding ClearDatabaseCommand}" Margin="10,0,0,0"
+                            Style="{StaticResource DangerButtonStyle}" ToolTip="Remove all company data (DANGER!)"/>
+                    <Border Margin="20,0,0,0" VerticalAlignment="Stretch" Background="#dee2e6" Width="1"/>
+                    <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Margin="20,0,0,0" FontStyle="Italic"/>
+                </StackPanel>
+            </Border>
 
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>

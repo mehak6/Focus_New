@@ -61,7 +61,7 @@
         <!-- Header -->
         <Border Grid.Row="0" Background="#f7fafc" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="20,15">
             <StackPanel>
-                <TextBlock Text="📊 Reports" Style="{StaticResource HeaderTextStyle}"/>
+                <TextBlock Text="REPORTS" Style="{StaticResource HeaderTextStyle}"/>
                 <TextBlock Text="Generate and export reports" FontSize="12" Foreground="#718096"/>
             </StackPanel>
         </Border>
@@ -114,23 +114,23 @@
                     
                     <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
                         <!-- Generate Button -->
-                        <Button Content="📊 Generate Report" Command="{Binding GenerateReportCommand}" 
-                                Style="{StaticResource PrimaryButtonStyle}" Width="140" Height="38" Margin="5,0"/>
-                        
+                        <Button Content="GENERATE" Command="{Binding GenerateReportCommand}"
+                                Style="{StaticResource PrimaryButtonStyle}" Width="100" Height="38" Margin="5,0"/>
+
                         <!-- Export Buttons -->
-                        <Button Content="📄 Export CSV" Command="{Binding ExportCsvCommand}" 
-                                Style="{StaticResource SecondaryButtonStyle}" Width="110" Height="38" Margin="5,0"/>
-                        <Button Content="📋 Export Excel" Command="{Binding ExportExcelCommand}" 
-                                Style="{StaticResource SecondaryButtonStyle}" Width="120" Height="38" Margin="5,0"/>
-                        <Button Content="📑 Export PDF" Command="{Binding ExportPdfCommand}" 
-                                Style="{StaticResource SecondaryButtonStyle}" Width="110" Height="38" Margin="5,0"/>
-                        
+                        <Button Content="CSV" Command="{Binding ExportCsvCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}" Width="80" Height="38" Margin="5,0"/>
+                        <Button Content="EXCEL" Command="{Binding ExportExcelCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}" Width="80" Height="38" Margin="5,0"/>
+                        <Button Content="PDF" Command="{Binding ExportPdfCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}" Width="80" Height="38" Margin="5,0"/>
+
                         <!-- Print Button -->
-                        <Button Content="🖨️ Print Report" Command="{Binding PrintReportCommand}" 
-                                Style="{StaticResource SecondaryButtonStyle}" Width="120" Height="38" Margin="5,0"/>
-                        
+                        <Button Content="PRINT" Command="{Binding PrintReportCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}" Width="80" Height="38" Margin="5,0"/>
+
                         <!-- Refresh Button -->
-                        <Button Content="🔄 Refresh" Command="{Binding RefreshDataCommand}" 
+                        <Button Content="REFRESH" Command="{Binding RefreshDataCommand}"
                                 Style="{StaticResource SecondaryButtonStyle}" Width="90" Height="38" Margin="5,0"/>
                     </StackPanel>
                 </Grid>
@@ -138,41 +138,150 @@
         </Border>
 
         <!-- Results Grid -->
-        <DataGrid Grid.Row="2"
-                  ItemsSource="{Binding ReportRows}"
-                  AutoGenerateColumns="False"
-                  CanUserAddRows="False"
-                  CanUserDeleteRows="False"
-                  GridLinesVisibility="Horizontal"
-                  HeadersVisibility="Column"
-                  AlternationCount="2"
-                  AlternatingRowBackground="#f8f9fa"
-                  SelectionMode="Single">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="120"/>
-                <DataGridTextColumn Header="V.No" Binding="{Binding VoucherNumber}" Width="80"/>
-                <DataGridTextColumn Header="Vehicle" Binding="{Binding VehicleNumber}" Width="180"/>
-                <DataGridTextColumn Header="Narration" Binding="{Binding Narration}" Width="*"/>
-                <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="120">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="TextAlignment" Value="Right"/>
-                            <Setter Property="FontFamily" Value="Consolas"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-                <DataGridTextColumn Header="Dr/Cr" Binding="{Binding DrCr}" Width="60"/>
-                <DataGridTextColumn Header="Balance" Binding="{Binding RunningBalance, StringFormat=N2}" Width="140">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="TextAlignment" Value="Right"/>
-                            <Setter Property="FontFamily" Value="Consolas"/>
-                            <Setter Property="FontWeight" Value="Bold"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-            </DataGrid.Columns>
-        </DataGrid>
+        <Border Grid.Row="2" Background="White" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Margin="0">
+            <DataGrid ItemsSource="{Binding ReportRows}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      CanUserDeleteRows="False"
+                      GridLinesVisibility="Horizontal"
+                      HeadersVisibility="Column"
+                      AlternationCount="2"
+                      AlternatingRowBackground="#fafbfc"
+                      Background="White"
+                      BorderThickness="0"
+                      RowHeight="32"
+                      FontSize="12"
+                      SelectionMode="Single"
+                      HorizontalScrollBarVisibility="Auto"
+                      VerticalScrollBarVisibility="Auto">
+
+                <DataGrid.ColumnHeaderStyle>
+                    <Style TargetType="DataGridColumnHeader">
+                        <Setter Property="Background" Value="#f1f3f4"/>
+                        <Setter Property="BorderBrush" Value="#dee2e6"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        <Setter Property="FontWeight" Value="SemiBold"/>
+                        <Setter Property="FontSize" Value="12"/>
+                        <Setter Property="Foreground" Value="#495057"/>
+                        <Setter Property="Padding" Value="8,6"/>
+                        <Setter Property="Height" Value="36"/>
+                    </Style>
+                </DataGrid.ColumnHeaderStyle>
+
+                <DataGrid.CellStyle>
+                    <Style TargetType="DataGridCell">
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="Padding" Value="4,2"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="#e3f2fd"/>
+                                <Setter Property="Foreground" Value="#1976d2"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.CellStyle>
+
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Setter Property="BorderBrush" Value="#f0f0f0"/>
+                        <Setter Property="BorderThickness" Value="0,0,0,1"/>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#f8f9fa"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="120" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextAlignment" Value="Center"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="FontSize" Value="12"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="V.No" Binding="{Binding VoucherNumber}" Width="80" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextAlignment" Value="Center"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="FontSize" Value="12"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="Vehicle" Binding="{Binding VehicleNumber}" Width="180" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="FontSize" Value="12"/>
+                                <Setter Property="Foreground" Value="#2d3748"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="Narration" Binding="{Binding Narration}" Width="*" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="FontSize" Value="12"/>
+                                <Setter Property="Foreground" Value="#4a5568"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="120" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextAlignment" Value="Right"/>
+                                <Setter Property="FontFamily" Value="Consolas"/>
+                                <Setter Property="FontSize" Value="12"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="Dr/Cr" Binding="{Binding DrCr}" Width="70" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextAlignment" Value="Center"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="FontSize" Value="12"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                        <DataGridTextColumn.CellStyle>
+                            <Style TargetType="DataGridCell">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding DrCr}" Value="D">
+                                        <Setter Property="Background" Value="#e6ffed"/>
+                                        <Setter Property="Foreground" Value="#22543d"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding DrCr}" Value="C">
+                                        <Setter Property="Background" Value="#fed7d7"/>
+                                        <Setter Property="Foreground" Value="#742a2a"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGridTextColumn.CellStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="Balance" Binding="{Binding RunningBalance, StringFormat=N2}" Width="140" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextAlignment" Value="Right"/>
+                                <Setter Property="FontFamily" Value="Consolas"/>
+                                <Setter Property="FontSize" Value="12"/>
+                                <Setter Property="FontWeight" Value="Bold"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
 
         <!-- Totals and Status -->
         <Border Grid.Row="3" Background="#edf2f7" BorderBrush="#cbd5e0" BorderThickness="0,1,0,0" Padding="15,8">

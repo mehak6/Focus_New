@@ -70,8 +70,8 @@
         <!-- Header -->
         <Border Grid.Row="0" Background="#f7fafc" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="20,15">
             <StackPanel>
-                <TextBlock Text="🚗 Vehicle Management" Style="{StaticResource HeaderTextStyle}"/>
-                <TextBlock Text="Manage vehicles and accounts for voucher entries" 
+                <TextBlock Text="VEHICLE MANAGEMENT" Style="{StaticResource HeaderTextStyle}"/>
+                <TextBlock Text="Manage vehicles and accounts for voucher entries"
                           FontSize="12" Foreground="#718096"/>
             </StackPanel>
         </Border>
