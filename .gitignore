@@ -351,6 +351,13 @@ FodyWeavers.xsd
 !.vscode/extensions.json
 *.code-workspace
 
+# Ignore any nested .vscode folders (but keep root exceptions above)
+*/.vscode/**
+**/*/.vscode/**
+
+# Ignore Claude config anywhere
+**/.claude/**
+
 # Local History for Visual Studio Code
 .history/
 
