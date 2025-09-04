@@ -69,6 +69,21 @@ public class PrintService
         window.Show();
     }
 
+    public void PrintReportDirectly(string title, IEnumerable<ViewModels.ReportRow> rows)
+    {
+        var doc = BuildDocument(title, rows);
+
+        var pd = new PrintDialog();
+        if (pd.ShowDialog() == true)
+        {
+            doc.PageHeight = pd.PrintableAreaHeight;
+            doc.PageWidth = pd.PrintableAreaWidth;
+            doc.ColumnWidth = pd.PrintableAreaWidth;
+            IDocumentPaginatorSource idp = doc;
+            pd.PrintDocument(idp.DocumentPaginator, title);
+        }
+    }
+
     public FlowDocument BuildDocument(string title, IEnumerable<ViewModels.ReportRow> rows)
     {
         var doc = new FlowDocument

@@ -105,8 +105,8 @@ public partial class MainWindowViewModel : BaseViewModel, INavigationAware
     {
         _hotkeyService.RegisterHotkey(Key.F1, VehicleManagementCommand, "Vehicle Number management");
         _hotkeyService.RegisterHotkey(Key.F2, AddVoucherCommand, "Add new voucher/row");
-        _hotkeyService.RegisterHotkey(Key.F3, ReportsCommand, "Reports menu");
-        _hotkeyService.RegisterHotkey(Key.F4, ProcessWorkCommand, "Process Work");
+        _hotkeyService.RegisterHotkey(Key.F3, NavigateToSearchCommand, "Search vouchers by vehicle");
+        _hotkeyService.RegisterHotkey(Key.F4, ReportsCommand, "Reports menu");
         _hotkeyService.RegisterHotkey(Key.F5, SaveCommand, "Save current operation");
         _hotkeyService.RegisterHotkey(Key.F8, DeleteCommand, "Delete selected item");
         _hotkeyService.RegisterHotkey(Key.F9, PrintCommand, "Print current view");
@@ -138,6 +138,14 @@ public partial class MainWindowViewModel : BaseViewModel, INavigationAware
         SelectedTab = "VehicleManagement";
         await _navigationService.NavigateToAsync("VehicleManagement", CurrentCompany);
         StatusMessage = "Vehicle Management";
+    }
+
+    [RelayCommand]
+    private async Task NavigateToSearch()
+    {
+        SelectedTab = "Search";
+        await _navigationService.NavigateToAsync("Search", CurrentCompany);
+        StatusMessage = "Search Vouchers";
     }
 
     [RelayCommand]

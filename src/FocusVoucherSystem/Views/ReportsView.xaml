@@ -66,45 +66,74 @@
             </StackPanel>
         </Border>
 
-        <!-- Filters -->
+        <!-- Filters and Actions -->
         <Border Grid.Row="1" Background="White" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="20,15">
             <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="260"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="150"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="150"/>
-                    <ColumnDefinition Width="20"/>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="220"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="15"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <!-- Filter Row -->
+                <Grid Grid.Row="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="280"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Column="0" Text="Report:" Style="{StaticResource LabelStyle}"/>
-                <ComboBox Grid.Column="1" ItemsSource="{Binding ReportTypes}" SelectedItem="{Binding SelectedReportType}" Height="30"/>
+                    <TextBlock Grid.Column="0" Text="Report Type:" Style="{StaticResource LabelStyle}"/>
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding ReportTypes}" SelectedItem="{Binding SelectedReportType}" Height="32"/>
 
-                <TextBlock Grid.Column="3" Text="From:" Style="{StaticResource LabelStyle}"/>
-                <DatePicker Grid.Column="4" SelectedDate="{Binding StartDate}" Height="30"/>
+                    <TextBlock Grid.Column="3" Text="From Date:" Style="{StaticResource LabelStyle}"/>
+                    <DatePicker Grid.Column="4" SelectedDate="{Binding StartDate}" Height="32"/>
 
-                <TextBlock Grid.Column="6" Text="To:" Style="{StaticResource LabelStyle}"/>
-                <DatePicker Grid.Column="7" SelectedDate="{Binding EndDate}" Height="30"/>
+                    <TextBlock Grid.Column="6" Text="To Date:" Style="{StaticResource LabelStyle}"/>
+                    <DatePicker Grid.Column="7" SelectedDate="{Binding EndDate}" Height="32"/>
 
-                <TextBlock Grid.Column="9" Text="Vehicle:" Style="{StaticResource LabelStyle}"/>
-                <ComboBox Grid.Column="10" ItemsSource="{Binding Vehicles}" SelectedItem="{Binding SelectedVehicle}"
-                          DisplayMemberPath="DisplayName" Height="30"/>
-
-                <StackPanel Grid.Column="12" Orientation="Horizontal">
-                    <Button Content="Generate" Command="{Binding GenerateReportCommand}" Style="{StaticResource PrimaryButtonStyle}"/>
-                    <Button Content="Export CSV" Command="{Binding ExportCsvCommand}" Style="{StaticResource SecondaryButtonStyle}"/>
-                    <Button Content="Export PDF" Command="{Binding ExportPdfCommand}" Style="{StaticResource SecondaryButtonStyle}"/>
-                    <Button Content="Export Excel" Command="{Binding ExportExcelCommand}" Style="{StaticResource SecondaryButtonStyle}"/>
-                    <Button Content="Print Preview" Command="{Binding PrintCommand}" Style="{StaticResource SecondaryButtonStyle}"/>
-                </StackPanel>
+                    <TextBlock Grid.Column="9" Text="Vehicle:" Style="{StaticResource LabelStyle}"/>
+                    <ComboBox Grid.Column="10" ItemsSource="{Binding Vehicles}" SelectedItem="{Binding SelectedVehicle}"
+                              DisplayMemberPath="DisplayName" Height="32"/>
+                </Grid>
+                
+                <!-- Action Buttons Row -->
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <!-- Generate Button -->
+                        <Button Content="📊 Generate Report" Command="{Binding GenerateReportCommand}" 
+                                Style="{StaticResource PrimaryButtonStyle}" Width="140" Height="38" Margin="5,0"/>
+                        
+                        <!-- Export Buttons -->
+                        <Button Content="📄 Export CSV" Command="{Binding ExportCsvCommand}" 
+                                Style="{StaticResource SecondaryButtonStyle}" Width="110" Height="38" Margin="5,0"/>
+                        <Button Content="📋 Export Excel" Command="{Binding ExportExcelCommand}" 
+                                Style="{StaticResource SecondaryButtonStyle}" Width="120" Height="38" Margin="5,0"/>
+                        <Button Content="📑 Export PDF" Command="{Binding ExportPdfCommand}" 
+                                Style="{StaticResource SecondaryButtonStyle}" Width="110" Height="38" Margin="5,0"/>
+                        
+                        <!-- Print Button -->
+                        <Button Content="🖨️ Print Report" Command="{Binding PrintReportCommand}" 
+                                Style="{StaticResource SecondaryButtonStyle}" Width="120" Height="38" Margin="5,0"/>
+                        
+                        <!-- Refresh Button -->
+                        <Button Content="🔄 Refresh" Command="{Binding RefreshDataCommand}" 
+                                Style="{StaticResource SecondaryButtonStyle}" Width="90" Height="38" Margin="5,0"/>
+                    </StackPanel>
+                </Grid>
             </Grid>
         </Border>
 
@@ -145,24 +174,33 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <!-- Totals -->
+        <!-- Totals and Status -->
         <Border Grid.Row="3" Background="#edf2f7" BorderBrush="#cbd5e0" BorderThickness="0,1,0,0" Padding="15,8">
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <TextBlock Margin="0,0,20,0">
-                    <Run Text="Total Dr: "/>
-                    <Run Text="{Binding TotalDebits, StringFormat=N2}" FontWeight="Bold"/>
-                </TextBlock>
-                <TextBlock Margin="0,0,20,0">
-                    <Run Text="Total Cr: "/>
-                    <Run Text="{Binding TotalCredits, StringFormat=N2}" FontWeight="Bold"/>
-                </TextBlock>
-                <TextBlock>
-                    <Run Text="Net: "/>
-                    <Run Text="{Binding NetAmount, StringFormat=N2}" FontWeight="Bold"/>
-                    <Run Text=" "/>
-                    <Run Text="{Binding NetDrCr}" FontWeight="Bold"/>
-                </TextBlock>
-            </StackPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" VerticalAlignment="Center" FontSize="12"/>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <TextBlock Margin="0,0,20,0">
+                        <Run Text="Total Dr: "/>
+                        <Run Text="{Binding TotalDebits, StringFormat=N2}" FontWeight="Bold"/>
+                    </TextBlock>
+                    <TextBlock Margin="0,0,20,0">
+                        <Run Text="Total Cr: "/>
+                        <Run Text="{Binding TotalCredits, StringFormat=N2}" FontWeight="Bold"/>
+                    </TextBlock>
+                    <TextBlock>
+                        <Run Text="Net: "/>
+                        <Run Text="{Binding NetAmount, StringFormat=N2}" FontWeight="Bold"/>
+                        <Run Text=" "/>
+                        <Run Text="{Binding NetDrCr}" FontWeight="Bold"/>
+                    </TextBlock>
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

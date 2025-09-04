@@ -90,6 +90,7 @@ public partial class MainWindow : Window
         {
             _navigationService.RegisterView("VoucherEntry", typeof(VoucherEntryView), typeof(VoucherEntryViewModel));
             _navigationService.RegisterView("VehicleManagement", typeof(VehicleManagementView), typeof(VehicleManagementViewModel));
+            _navigationService.RegisterView("Search", typeof(SearchView), typeof(SearchViewModel));
             _navigationService.RegisterView("Reports", typeof(ReportsView), typeof(ReportsViewModel));
             _navigationService.RegisterView("Utilities", typeof(UtilitiesView), typeof(UtilitiesViewModel));
             // Add more views as they are created

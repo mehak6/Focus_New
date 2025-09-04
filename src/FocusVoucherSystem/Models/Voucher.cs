@@ -74,6 +74,12 @@ public partial class Voucher : ObservableObject
     public virtual Vehicle? Vehicle { get; set; }
 
     /// <summary>
+    /// Running balance after this transaction (calculated for display)
+    /// </summary>
+    [ObservableProperty]
+    private decimal _runningBalance;
+
+    /// <summary>
     /// Gets whether this is a debit entry
     /// </summary>
     public bool IsDebit => DrCr == "D";

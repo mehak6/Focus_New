@@ -14,13 +14,13 @@ namespace FocusVoucherSystem.ViewModels;
 public partial class VehicleManagementViewModel : BaseViewModel, INavigationAware
 {
     [ObservableProperty]
-    private ObservableCollection<Vehicle> _vehicles = new();
+    private ObservableCollection<VehicleDisplayItem> _vehicles = new();
 
     [ObservableProperty]
     private Vehicle _currentVehicle = new();
 
     [ObservableProperty]
-    private Vehicle? _selectedVehicle;
+    private VehicleDisplayItem? _selectedVehicle;
 
     [ObservableProperty]
     private Company? _currentCompany;
@@ -40,11 +40,13 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
     [ObservableProperty]
     private int _activeVehicles;
 
-    private List<Vehicle> _allVehicles = new();
+    private List<VehicleDisplayItem> _allVehicles = new();
 
     public VehicleManagementViewModel(DataService dataService) : base(dataService)
     {
         InitializeNewVehicle();
+        // Always show the form like voucher entry
+        IsEditMode = true;
     }
 
     /// <summary>
@@ -58,8 +60,24 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
         {
             // Load all vehicles for the company
             var vehicles = await _dataService.Vehicles.GetByCompanyIdAsync(CurrentCompany.CompanyId);
-            _allVehicles = vehicles.OrderBy(v => v.VehicleNumber).ToList();
+            var vehicleDisplayItems = new List<VehicleDisplayItem>();
 
+            // Create display items with balance and transaction data
+            foreach (var vehicle in vehicles.OrderBy(v => v.VehicleNumber))
+            {
+                var displayItem = new VehicleDisplayItem(vehicle);
+                
+                // Load balance and last transaction date
+                var balance = await _dataService.Vehicles.GetVehicleBalanceAsync(vehicle.VehicleId);
+                var lastTransactionDate = await _dataService.Vehicles.GetLastTransactionDateAsync(vehicle.VehicleId);
+                
+                displayItem.UpdateBalance(balance);
+                displayItem.UpdateLastTransactionDate(lastTransactionDate);
+                
+                vehicleDisplayItems.Add(displayItem);
+            }
+
+            _allVehicles = vehicleDisplayItems;
             RefreshVehicleList();
             StatusMessage = $"Loaded {TotalVehicles} vehicles ({ActiveVehicles} active)";
 
@@ -83,9 +101,9 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
         }
 
         Vehicles.Clear();
-        foreach (var vehicle in filtered)
+        foreach (var vehicleDisplay in filtered)
         {
-            Vehicles.Add(vehicle);
+            Vehicles.Add(vehicleDisplay);
         }
 
         TotalVehicles = _allVehicles.Count;
@@ -105,7 +123,7 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
             Description = string.Empty
         };
 
-        IsEditMode = false;
+        IsEditMode = true; // Always keep form visible
         StatusMessage = "Ready to add new vehicle";
     }
 
@@ -155,6 +173,16 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
     }
 
     /// <summary>
+    /// Creates a new vehicle (clears the form)
+    /// </summary>
+    [RelayCommand]
+    private void NewVehicle()
+    {
+        InitializeNewVehicle();
+        StatusMessage = "Ready for new vehicle entry";
+    }
+
+    /// <summary>
     /// Edits the selected vehicle
     /// </summary>
     [RelayCommand]
@@ -194,7 +222,16 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
             {
                 // New vehicle
                 savedVehicle = await _dataService.Vehicles.AddAsync(CurrentVehicle);
-                _allVehicles.Add(savedVehicle);
+                
+                // Create display item for new vehicle
+                var newDisplayItem = new VehicleDisplayItem(savedVehicle);
+                var balance = await _dataService.Vehicles.GetVehicleBalanceAsync(savedVehicle.VehicleId);
+                var lastTransactionDate = await _dataService.Vehicles.GetLastTransactionDateAsync(savedVehicle.VehicleId);
+                
+                newDisplayItem.UpdateBalance(balance);
+                newDisplayItem.UpdateLastTransactionDate(lastTransactionDate);
+                
+                _allVehicles.Add(newDisplayItem);
                 StatusMessage = $"Vehicle '{savedVehicle.VehicleNumber}' added successfully";
             }
             else
@@ -202,19 +239,25 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
                 // Update existing vehicle
                 savedVehicle = await _dataService.Vehicles.UpdateAsync(CurrentVehicle);
                 
-                // Replace in collection
-                var index = _allVehicles.FindIndex(v => v.VehicleId == savedVehicle.VehicleId);
-                if (index >= 0)
+                // Update the display item in collection
+                var displayItem = _allVehicles.FirstOrDefault(v => v.VehicleId == savedVehicle.VehicleId);
+                if (displayItem != null)
                 {
-                    _allVehicles[index] = savedVehicle;
+                    displayItem.UpdateVehicleData(savedVehicle);
+                    
+                    // Refresh balance and transaction data
+                    var balance = await _dataService.Vehicles.GetVehicleBalanceAsync(savedVehicle.VehicleId);
+                    var lastTransactionDate = await _dataService.Vehicles.GetLastTransactionDateAsync(savedVehicle.VehicleId);
+                    
+                    displayItem.UpdateBalance(balance);
+                    displayItem.UpdateLastTransactionDate(lastTransactionDate);
                 }
                 
                 StatusMessage = $"Vehicle '{savedVehicle.VehicleNumber}' updated successfully";
             }
 
             RefreshVehicleList();
-            IsEditMode = false;
-            InitializeNewVehicle();
+            InitializeNewVehicle(); // Clear form after save
 
         }, "Saving vehicle...");
     }
@@ -225,7 +268,6 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
     [RelayCommand]
     private void CancelEdit()
     {
-        IsEditMode = false;
         InitializeNewVehicle();
         StatusMessage = "Edit cancelled";
     }
@@ -234,9 +276,28 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
     /// Deletes a vehicle
     /// </summary>
     [RelayCommand]
-    private async Task DeleteVehicle(Vehicle? vehicle)
+    private async Task DeleteVehicle()
     {
-        if (vehicle == null) return;
+        // Use the current vehicle being edited or selected vehicle
+        Vehicle? vehicle = null;
+        VehicleDisplayItem? displayItem = null;
+        
+        if (CurrentVehicle.VehicleId > 0)
+        {
+            vehicle = CurrentVehicle;
+            displayItem = _allVehicles.FirstOrDefault(v => v.VehicleId == CurrentVehicle.VehicleId);
+        }
+        else if (SelectedVehicle != null)
+        {
+            vehicle = SelectedVehicle.Vehicle;
+            displayItem = SelectedVehicle;
+        }
+        
+        if (vehicle == null || vehicle.VehicleId == 0)
+        {
+            StatusMessage = "No vehicle selected for deletion";
+            return;
+        }
 
         var result = MessageBox.Show(
             $"Are you sure you want to delete vehicle '{vehicle.VehicleNumber}'?\n\n" +
@@ -255,12 +316,16 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
             
             if (success)
             {
-                _allVehicles.Remove(vehicle);
+                if (displayItem != null)
+                {
+                    _allVehicles.Remove(displayItem);
+                }
                 RefreshVehicleList();
                 StatusMessage = $"Vehicle '{vehicle.VehicleNumber}' deleted successfully";
                 
-                if (SelectedVehicle == vehicle)
-                    SelectedVehicle = null;
+                // Clear the form and selection after deletion
+                InitializeNewVehicle();
+                SelectedVehicle = null;
             }
             else
             {
@@ -314,11 +379,14 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
     /// <summary>
     /// Handles vehicle selection changes
     /// </summary>
-    partial void OnSelectedVehicleChanged(Vehicle? value)
+    partial void OnSelectedVehicleChanged(VehicleDisplayItem? value)
     {
         if (value != null)
         {
-            StatusMessage = $"Selected: {value.DisplayName}";
+            // Populate the form with selected vehicle data
+            CurrentVehicle = value.CreateVehicleCopy();
+            
+            StatusMessage = $"Editing: {value.DisplayName}";
         }
     }
 

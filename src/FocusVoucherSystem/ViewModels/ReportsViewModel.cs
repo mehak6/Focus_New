@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using FocusVoucherSystem.Models;
 using FocusVoucherSystem.Services;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 
 namespace FocusVoucherSystem.ViewModels;
@@ -216,44 +217,145 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
     [RelayCommand]
     private async Task ExportCsv()
     {
-        if (ReportRows.Count == 0) { StatusMessage = "Nothing to export"; return; }
+        if (ReportRows.Count == 0) { StatusMessage = "Please generate a report first"; return; }
         await ExecuteAsync(async () =>
         {
-            var filePath = await _exportService.ExportCsvAsync(SelectedReportType, ReportRows);
-            StatusMessage = $"CSV exported: {filePath}";
-        }, "Exporting CSV...");
+            try
+            {
+                var filePath = await _exportService.ExportCsvAsync(SelectedReportType, ReportRows);
+                StatusMessage = $"✅ CSV exported successfully: {Path.GetFileName(filePath)}";
+                
+                // Open the export folder
+                OpenExportFolder(filePath);
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"❌ CSV export failed: {ex.Message}";
+            }
+        }, "Exporting to CSV...");
     }
 
     [RelayCommand]
     private async Task ExportPdf()
     {
-        if (ReportRows.Count == 0) { StatusMessage = "Nothing to export"; return; }
+        if (ReportRows.Count == 0) { StatusMessage = "Please generate a report first"; return; }
         await ExecuteAsync(async () =>
         {
-            var filePath = await _exportService.ExportPdfAsync(SelectedReportType, ReportRows, _company?.Name ?? "Company");
-            StatusMessage = $"PDF exported: {filePath}";
-        }, "Exporting PDF...");
+            try
+            {
+                var filePath = await _exportService.ExportPdfAsync(SelectedReportType, ReportRows, _company?.Name ?? "Company");
+                StatusMessage = $"✅ PDF exported successfully: {Path.GetFileName(filePath)}";
+                
+                // Open the export folder
+                OpenExportFolder(filePath);
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"❌ PDF export failed: {ex.Message}";
+            }
+        }, "Exporting to PDF...");
     }
 
     [RelayCommand]
     private async Task ExportExcel()
     {
-        if (ReportRows.Count == 0) { StatusMessage = "Nothing to export"; return; }
+        if (ReportRows.Count == 0) { StatusMessage = "Please generate a report first"; return; }
         await ExecuteAsync(async () =>
         {
-            var filePath = await _exportService.ExportExcelAsync(SelectedReportType, ReportRows);
-            StatusMessage = $"Excel exported: {filePath}";
-        }, "Exporting Excel...");
+            try
+            {
+                var filePath = await _exportService.ExportExcelAsync(SelectedReportType, ReportRows);
+                StatusMessage = $"✅ Excel exported successfully: {Path.GetFileName(filePath)}";
+                
+                // Open the export folder
+                OpenExportFolder(filePath);
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"❌ Excel export failed: {ex.Message}";
+            }
+        }, "Exporting to Excel...");
     }
 
     [RelayCommand]
     private Task Print()
     {
-        if (ReportRows.Count == 0) { StatusMessage = "Nothing to print"; return Task.CompletedTask; }
-        var title = _company != null ? $"{SelectedReportType} - {_company.Name} ({StartDate:dd/MM/yyyy} to {EndDate:dd/MM/yyyy})" : SelectedReportType;
-        _printService.PreviewReport(title, ReportRows);
-        StatusMessage = "Print preview opened";
+        if (ReportRows.Count == 0) { StatusMessage = "Please generate a report first"; return Task.CompletedTask; }
+        try
+        {
+            var title = _company != null ? $"{SelectedReportType} - {_company.Name} ({StartDate:dd/MM/yyyy} to {EndDate:dd/MM/yyyy})" : SelectedReportType;
+            _printService.PreviewReport(title, ReportRows);
+            StatusMessage = "✅ Print preview opened successfully";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"❌ Print preview failed: {ex.Message}";
+        }
         return Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private Task PrintReport()
+    {
+        if (ReportRows.Count == 0) { StatusMessage = "Please generate a report first"; return Task.CompletedTask; }
+        try
+        {
+            var title = _company != null ? $"{SelectedReportType} - {_company.Name} ({StartDate:dd/MM/yyyy} to {EndDate:dd/MM/yyyy})" : SelectedReportType;
+            _printService.PrintReportDirectly(title, ReportRows);
+            StatusMessage = "✅ Report sent to printer";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"❌ Print failed: {ex.Message}";
+        }
+        return Task.CompletedTask;
+    }
+
+    [RelayCommand]
+    private async Task RefreshData()
+    {
+        if (_company != null)
+        {
+            await OnNavigatedToAsync(_company);
+            StatusMessage = "✅ Data refreshed successfully";
+        }
+    }
+
+    private static void OpenExportFolder(string filePath)
+    {
+        try
+        {
+            var directory = Path.GetDirectoryName(filePath);
+            if (Directory.Exists(directory))
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{filePath}\"",
+                    UseShellExecute = true
+                });
+            }
+        }
+        catch (Exception)
+        {
+            // If selecting file fails, try opening folder
+            try
+            {
+                var directory = Path.GetDirectoryName(filePath);
+                if (Directory.Exists(directory))
+                {
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                    {
+                        FileName = directory,
+                        UseShellExecute = true
+                    });
+                }
+            }
+            catch
+            {
+                // Ignore if both methods fail
+            }
+        }
     }
 
     public async Task OnNavigatedToAsync(object? parameters)

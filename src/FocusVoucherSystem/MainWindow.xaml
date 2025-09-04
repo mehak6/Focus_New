@@ -99,14 +99,18 @@
                             Style="{StaticResource TabButtonStyle}"
                             Command="{Binding NavigateToVehicleManagementCommand}"
                             ToolTip="F1 - Manage vehicles and accounts"/>
+                    <Button Content="?? Search" 
+                            Style="{StaticResource TabButtonStyle}"
+                            Command="{Binding NavigateToSearchCommand}"
+                            ToolTip="F3 - Search vouchers by vehicle"/>
                     <Button Content="?? Reports" 
                             Style="{StaticResource TabButtonStyle}"
                             Command="{Binding NavigateToReportsCommand}"
-                            ToolTip="F3 - View and print reports"/>
+                            ToolTip="F4 - View and print reports"/>
                     <Button Content="?? Utilities" 
                             Style="{StaticResource TabButtonStyle}"
                             Command="{Binding NavigateToUtilitiesCommand}"
-                            ToolTip="F4 - System utilities and settings"/>
+                            ToolTip="System utilities and settings"/>
                 </StackPanel>
             </Border>
 
