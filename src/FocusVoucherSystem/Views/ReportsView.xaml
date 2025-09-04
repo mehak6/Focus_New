@@ -238,7 +238,7 @@
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="120" IsReadOnly="True">
+                    <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=C2}" Width="120" IsReadOnly="True">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="TextAlignment" Value="Right"/>
@@ -277,7 +277,7 @@
                         </DataGridTextColumn.CellStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="Balance" Binding="{Binding RunningBalance, StringFormat=N2}" Width="140" IsReadOnly="True">
+                    <DataGridTextColumn Header="Balance" Binding="{Binding RunningBalance, StringFormat=C2}" Width="140" IsReadOnly="True">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="TextAlignment" Value="Right"/>
@@ -306,15 +306,15 @@
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <TextBlock Margin="0,0,20,0">
                         <Run Text="Total Dr: "/>
-                        <Run Text="{Binding TotalDebits, StringFormat=N2}" FontWeight="Bold"/>
+                        <Run Text="{Binding TotalDebits, StringFormat=C2}" FontWeight="Bold"/>
                     </TextBlock>
                     <TextBlock Margin="0,0,20,0">
                         <Run Text="Total Cr: "/>
-                        <Run Text="{Binding TotalCredits, StringFormat=N2}" FontWeight="Bold"/>
+                        <Run Text="{Binding TotalCredits, StringFormat=C2}" FontWeight="Bold"/>
                     </TextBlock>
                     <TextBlock>
                         <Run Text="Net: "/>
-                        <Run Text="{Binding NetAmount, StringFormat=N2}" FontWeight="Bold"/>
+                        <Run Text="{Binding NetAmount, StringFormat=C2}" FontWeight="Bold"/>
                         <Run Text=" "/>
                         <Run Text="{Binding NetDrCr}" FontWeight="Bold"/>
                     </TextBlock>

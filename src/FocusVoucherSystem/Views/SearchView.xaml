@@ -299,7 +299,7 @@
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
 
-                <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="100" IsReadOnly="True">
+                <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=C2}" Width="100" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="TextAlignment" Value="Right"/>
@@ -338,7 +338,7 @@
                     </DataGridTextColumn.CellStyle>
                 </DataGridTextColumn>
 
-                <DataGridTextColumn Header="Running Balance" Binding="{Binding RunningBalance, StringFormat=N2}" Width="120" IsReadOnly="True">
+                <DataGridTextColumn Header="Running Balance" Binding="{Binding RunningBalance, StringFormat=C2}" Width="120" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="TextAlignment" Value="Right"/>

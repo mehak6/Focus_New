@@ -310,7 +310,7 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
         var result = MessageBox.Show(
             $"Are you sure you want to delete voucher '{voucher.VoucherNumber}'?\n\n" +
             $"Date: {voucher.Date:dd/MM/yyyy}\n" +
-            $"Amount: ₹{voucher.Amount:N2} ({voucher.DrCr})\n" +
+            $"Amount: {voucher.Amount.ToString("C2")} ({voucher.DrCr})\n" +
             $"Vehicle: {voucher.Vehicle?.DisplayName}\n" +
             $"Narration: {voucher.Narration}\n\n" +
             "This action cannot be undone.",

@@ -105,7 +105,7 @@ public class VehicleBalanceConverter : IValueConverter
     {
         // This is a placeholder - in a real implementation, you'd calculate the actual balance
         // For now, return a formatted currency placeholder
-        return "₹0.00";
+        return 0m.ToString("C2");
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

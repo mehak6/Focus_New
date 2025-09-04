@@ -98,7 +98,7 @@ public partial class Voucher : ObservableObject
     /// <summary>
     /// Gets a formatted display string for the amount with Dr/Cr indicator
     /// </summary>
-    public string FormattedAmount => $"{Amount:N2} {DrCr}";
+    public string FormattedAmount => $"{Amount.ToString("C2")} {DrCr}";
 
     /// <summary>
     /// Gets a short description for display purposes

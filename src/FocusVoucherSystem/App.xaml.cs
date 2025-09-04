@@ -1,6 +1,8 @@
 ﻿using System.Configuration;
 using System.Data;
 using System.Windows;
+using System.Globalization;
+using System.Windows.Markup;
 using FocusVoucherSystem.Services;
 using FocusVoucherSystem.Views;
 using FocusVoucherSystem.ViewModels;
@@ -18,6 +20,16 @@ public partial class App : Application
         try
         {
             System.Diagnostics.Debug.WriteLine($"App.xaml.cs: Application_Startup started");
+
+            // Set application culture to Indian (en-IN) for currency and number formatting
+            var indianCulture = new CultureInfo("en-IN");
+            CultureInfo.DefaultThreadCurrentCulture = indianCulture;
+            CultureInfo.DefaultThreadCurrentUICulture = indianCulture;
+            // Ensure WPF element formatting (StringFormat) uses en-IN
+            FrameworkElement.LanguageProperty.OverrideMetadata(
+                typeof(FrameworkElement),
+                new FrameworkPropertyMetadata(XmlLanguage.GetLanguage(indianCulture.IetfLanguageTag))
+            );
 
             // Prevent the app from auto-shutting down when the selection dialog closes
             // Default is OnLastWindowClose, which can terminate the app before MainWindow is shown

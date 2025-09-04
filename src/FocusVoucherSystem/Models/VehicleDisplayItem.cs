@@ -69,7 +69,7 @@ public partial class VehicleDisplayItem : ObservableObject
     /// <summary>
     /// Formatted balance string
     /// </summary>
-    public string FormattedBalance => $"₹{Balance:N2}";
+    public string FormattedBalance => Balance.ToString("C2");
 
     /// <summary>
     /// Last transaction date for this vehicle

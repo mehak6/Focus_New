@@ -114,7 +114,7 @@
                             <DataGridTextColumn Header="V.No" Binding="{Binding VNo}" Width="80"/>
                             <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="120"/>
                             <DataGridTextColumn Header="Vehicle" Binding="{Binding Vehicle}" Width="*"/>
-                            <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=N2}" Width="120"/>
+                            <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=C2}" Width="120"/>
                             <DataGridTextColumn Header="Dr/Cr" Binding="{Binding DrCr}" Width="60"/>
                         </DataGrid.Columns>
                     </DataGrid>

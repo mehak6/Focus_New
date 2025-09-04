@@ -138,9 +138,9 @@ public class PrintService
             row.Cells.Add(new TableCell(new Paragraph(new Run(r.VoucherNumber.ToString()))) { Padding = new Thickness(4) });
             row.Cells.Add(new TableCell(new Paragraph(new Run(r.VehicleNumber))) { Padding = new Thickness(4) });
             row.Cells.Add(new TableCell(new Paragraph(new Run(r.Narration))) { Padding = new Thickness(4) });
-            row.Cells.Add(new TableCell(new Paragraph(new Run(r.Amount.ToString("N2")))) { Padding = new Thickness(4), TextAlignment = TextAlignment.Right });
+            row.Cells.Add(new TableCell(new Paragraph(new Run(r.Amount.ToString("C2")))) { Padding = new Thickness(4), TextAlignment = TextAlignment.Right });
             row.Cells.Add(new TableCell(new Paragraph(new Run(r.DrCr))) { Padding = new Thickness(4) });
-            row.Cells.Add(new TableCell(new Paragraph(new Run(r.RunningBalance.ToString("N2")))) { Padding = new Thickness(4), TextAlignment = TextAlignment.Right });
+            row.Cells.Add(new TableCell(new Paragraph(new Run(r.RunningBalance.ToString("C2")))) { Padding = new Thickness(4), TextAlignment = TextAlignment.Right });
         }
 
         return doc;
