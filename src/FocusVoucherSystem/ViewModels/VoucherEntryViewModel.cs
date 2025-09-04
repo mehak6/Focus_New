@@ -29,6 +29,16 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     [ObservableProperty]
     private Vehicle? _selectedVehicle;
 
+    // Vehicle search UX state
+    [ObservableProperty]
+    private string _vehicleSearchText = string.Empty;
+
+    [ObservableProperty]
+    private ObservableCollection<Vehicle> _filteredVehicles = new();
+
+    [ObservableProperty]
+    private bool _showVehicleSuggestions;
+
     [ObservableProperty]
     private Company? _currentCompany;
 
@@ -46,6 +56,9 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
         InitializeNewVoucher();
     }
 
+    // Request from VM to set focus on vehicle search textbox
+    public event Action? FocusVehicleSearchRequested;
+
     /// <summary>
     /// Loads vouchers and vehicles for the current company
     /// </summary>
@@ -62,6 +75,9 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             {
                 Vehicles.Add(vehicle);
             }
+
+            // Initialize vehicle search list
+            UpdateVehicleFilter();
 
             // Load recent vouchers (limited for performance)
             var allVouchers = await _dataService.Vouchers.GetByCompanyIdAsync(CurrentCompany.CompanyId);
@@ -98,6 +114,8 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
         };
 
         SelectedVehicle = null;
+        VehicleSearchText = string.Empty;
+        UpdateVehicleFilter();
     }
 
     private async Task SetNextVoucherNumberAsync()
@@ -244,6 +262,9 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             // Prepare for next voucher after successful save
             InitializeNewVoucher();
             await SetNextVoucherNumberAsync();
+
+            // Ask view to focus the vehicle search for speedy entry
+            FocusVehicleSearchRequested?.Invoke();
 
         }, "Saving voucher...");
     }
@@ -411,7 +432,47 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
         if (value != null)
         {
             StatusMessage = $"Selected vehicle: {value.DisplayName}";
+            // Keep search box in sync with selection
+            VehicleSearchText = value.DisplayName;
+            ShowVehicleSuggestions = false;
         }
+    }
+
+    partial void OnVehicleSearchTextChanged(string value)
+    {
+        UpdateVehicleFilter();
+        ShowVehicleSuggestions = !string.IsNullOrWhiteSpace(VehicleSearchText) && FilteredVehicles.Any();
+    }
+
+    private void UpdateVehicleFilter()
+    {
+        var term = (VehicleSearchText ?? string.Empty).Trim();
+        FilteredVehicles.Clear();
+
+        if (string.IsNullOrWhiteSpace(term))
+        {
+            // Show a small recent/top subset to help discovery
+            foreach (var v in Vehicles.Take(10))
+                FilteredVehicles.Add(v);
+            return;
+        }
+
+        var hit = Vehicles
+            .Where(v => (v.DisplayName?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                     || (v.VehicleNumber?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+                     || (v.Description?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false))
+            .Take(20);
+
+        foreach (var v in hit)
+            FilteredVehicles.Add(v);
+    }
+
+    [RelayCommand]
+    private void SelectVehicle(Vehicle vehicle)
+    {
+        SelectedVehicle = vehicle;
+        VehicleSearchText = vehicle.DisplayName;
+        ShowVehicleSuggestions = false;
     }
 
     #endregion

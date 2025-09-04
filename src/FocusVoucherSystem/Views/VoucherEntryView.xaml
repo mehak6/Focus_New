@@ -7,6 +7,7 @@
              d:DesignHeight="600" d:DesignWidth="1000">
     
     <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
         <!-- Styles for the voucher entry form -->
         <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="16"/>
@@ -125,9 +126,37 @@
                     <DatePicker Grid.Column="4" SelectedDate="{Binding CurrentVoucher.Date}" Height="30" VerticalContentAlignment="Center"/>
                     
                     <TextBlock Grid.Column="6" Text="Vehicle:" Style="{StaticResource LabelStyle}"/>
-                    <ComboBox Grid.Column="7" ItemsSource="{Binding Vehicles}" 
-                              SelectedItem="{Binding SelectedVehicle}"
-                              DisplayMemberPath="DisplayName" Height="30" VerticalContentAlignment="Center"/>
+                    <Grid Grid.Column="7">
+                        <!-- Vehicle search textbox -->
+                        <TextBox x:Name="VehicleSearchTextBox"
+                                 Text="{Binding VehicleSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                 Style="{StaticResource InputStyle}"
+                                 ToolTip="Type to search vehicles (Enter to select first)"
+                                 PreviewKeyDown="VehicleSearchTextBox_PreviewKeyDown"
+                                 KeyDown="VehicleSearchTextBox_OnKeyDown"/>
+
+                        <!-- Suggestions popup (does not affect layout size) -->
+                        <Popup x:Name="VehicleSuggestionsPopup"
+                               PlacementTarget="{Binding ElementName=VehicleSearchTextBox}"
+                               Placement="Bottom"
+                               IsOpen="{Binding ShowVehicleSuggestions}"
+                               StaysOpen="False"
+                               AllowsTransparency="True"
+                               Focusable="False"
+                               Closed="VehicleSuggestionsPopup_OnClosed">
+                            <Border BorderBrush="#cbd5e0" BorderThickness="1" Background="White"
+                                    Width="{Binding ElementName=VehicleSearchTextBox, Path=ActualWidth}">
+                                <ListBox x:Name="VehicleSuggestionsList"
+                                         ItemsSource="{Binding FilteredVehicles}"
+                                         Background="Transparent" BorderThickness="0"
+                                         PreviewKeyDown="VehicleSuggestionsList_OnKeyDown"
+                                         KeyDown="VehicleSuggestionsList_OnKeyDown"
+                                         DisplayMemberPath="DisplayName"
+                                         MaxHeight="200"
+                                         MouseDoubleClick="VehicleSuggestionsList_OnMouseDoubleClick"/>
+                            </Border>
+                        </Popup>
+                    </Grid>
                 </Grid>
                 
                 <!-- Second Row of Inputs -->

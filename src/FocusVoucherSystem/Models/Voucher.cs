@@ -21,7 +21,8 @@ public partial class Voucher : ObservableObject
     /// <summary>
     /// User-visible voucher number (editable, continuous per company)
     /// </summary>
-    public int VoucherNumber { get; set; }
+    [ObservableProperty]
+    private int _voucherNumber;
 
     /// <summary>
     /// Date of the voucher entry
