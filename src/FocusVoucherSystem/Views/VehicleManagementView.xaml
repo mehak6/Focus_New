@@ -163,47 +163,62 @@
                         <Style TargetType="TextBlock">
                             <Setter Property="FontWeight" Value="SemiBold"/>
                             <Setter Property="Foreground" Value="#2d3748"/>
+                            <Setter Property="Padding" Value="4,8"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                
+
                 <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="Foreground" Value="#4a5568"/>
+                            <Setter Property="Padding" Value="4,8"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                
+
                 <DataGridTextColumn Header="Balance" Binding="{Binding FormattedBalance}" Width="120" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="TextAlignment" Value="Right"/>
                             <Setter Property="FontFamily" Value="Consolas"/>
                             <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="Padding" Value="4,8"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                
+
                 <DataGridTextColumn Header="Last Transaction" Binding="{Binding FormattedLastTransactionDate}" Width="120" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="TextAlignment" Value="Center"/>
                             <Setter Property="Foreground" Value="#718096"/>
+                            <Setter Property="Padding" Value="4,8"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
                         </Style>
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
-                
+
                 <DataGridTemplateColumn Header="Status" Width="80">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
-                            <TextBlock Text="{Binding IsActive, Converter={x:Static local:Converters.BooleanToActiveStatusConverter}}" 
+                            <TextBlock Text="{Binding IsActive, Converter={x:Static local:Converters.BooleanToActiveStatusConverter}}"
                                        TextAlignment="Center"
-                                       FontWeight="SemiBold"/>
+                                       FontWeight="SemiBold"
+                                       Padding="2,8"
+                                       FontSize="13"
+                                       VerticalAlignment="Center"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
-                
+
             </DataGrid.Columns>
         </DataGrid>
         

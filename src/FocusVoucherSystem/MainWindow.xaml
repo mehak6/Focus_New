@@ -63,30 +63,119 @@
 
     <DockPanel>
         <!-- Top Menu Bar -->
-        <Menu DockPanel.Dock="Top" Background="#4a5568" Foreground="White" Height="25">
+        <Menu DockPanel.Dock="Top" Height="32">
+            <Menu.Resources>
+                <!-- Menu Style -->
+                <Style TargetType="{x:Type Menu}">
+                    <Setter Property="Background" Value="#2d3748"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Style>
+
+                <!-- Top Level MenuItem Style -->
+                <Style x:Key="TopLevelMenuItemStyle" TargetType="{x:Type MenuItem}">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="FontSize" Value="13"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Padding" Value="12,6"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type MenuItem}">
+                                <Border x:Name="Border"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}">
+                                    <ContentPresenter ContentSource="Header"
+                                                    Margin="{TemplateBinding Padding}"
+                                                    RecognizesAccessKey="True"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="#4299e1"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="#3182ce"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSubmenuOpen" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="#4299e1"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!-- Sub MenuItem Style -->
+                <Style x:Key="SubMenuItemStyle" TargetType="{x:Type MenuItem}">
+                    <Setter Property="Background" Value="White"/>
+                    <Setter Property="Foreground" Value="#2d3748"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="Padding" Value="10,6"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type MenuItem}">
+                                <Border x:Name="Border"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}">
+                                    <ContentPresenter ContentSource="Header"
+                                                    Margin="{TemplateBinding Padding}"
+                                                    RecognizesAccessKey="True"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="#e2e8f0"/>
+                                        <Setter Property="Foreground" Value="#2d3748"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="#cbd5e0"/>
+                                        <Setter Property="Foreground" Value="#2d3748"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </Menu.Resources>
+
+            <!-- Set menu style -->
+            <Menu.Style>
+                <Style TargetType="{x:Type Menu}">
+                    <Setter Property="Background" Value="#2d3748"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Style>
+            </Menu.Style>
+
             <MenuItem Header="_File">
-                <MenuItem Header="_New Company" Command="{Binding NewCompanyCommand}"/>
+                <MenuItem Header="_New Company" Command="{Binding NewCompanyCommand}" ToolTip="Create a new company profile"/>
                 <MenuItem Header="_Switch Company" ItemsSource="{Binding Companies}">
                     <MenuItem.ItemContainerStyle>
                         <Style TargetType="MenuItem">
                             <Setter Property="Header" Value="{Binding Name}"/>
                             <Setter Property="Command" Value="{Binding DataContext.ChangeCompanyCommand, RelativeSource={RelativeSource AncestorType=Window}}"/>
                             <Setter Property="CommandParameter" Value="{Binding}"/>
+                            <Setter Property="Background" Value="White"/>
+                            <Setter Property="Foreground" Value="#2d3748"/>
+                            <Setter Property="Padding" Value="10,6"/>
                         </Style>
                     </MenuItem.ItemContainerStyle>
                 </MenuItem>
                 <Separator/>
-                <MenuItem Header="_Import Legacy Data" Command="{Binding ImportDataCommand}"/>
-                <MenuItem Header="_Export Data" Command="{Binding ExportDataCommand}"/>
+                <MenuItem Header="_Import Legacy Data" Command="{Binding ImportDataCommand}" ToolTip="Import data from legacy system"/>
+                <MenuItem Header="_Export Data" Command="{Binding ExportDataCommand}" ToolTip="Export current data"/>
                 <Separator/>
-                <MenuItem Header="E_xit" Command="{Binding ExitCommand}"/>
+                <MenuItem Header="E_xit" Command="{Binding ExitCommand}" ToolTip="Exit the application" InputGestureText="Alt+F4"/>
             </MenuItem>
             <MenuItem Header="_View">
-                <MenuItem Header="_Refresh" Command="{Binding RefreshDataCommand}" InputGestureText="F5"/>
+                <MenuItem Header="_Refresh" Command="{Binding RefreshDataCommand}" InputGestureText="F5" ToolTip="Refresh all data"/>
             </MenuItem>
             <MenuItem Header="_Help">
-                <MenuItem Header="_Hotkey Reference" Command="{Binding ShowHotkeysCommand}" InputGestureText="F1"/>
-                <MenuItem Header="_About" Command="{Binding AboutCommand}"/>
+                <MenuItem Header="_Hotkey Reference" Command="{Binding ShowHotkeysCommand}" InputGestureText="F1" ToolTip="Show keyboard shortcuts"/>
+                <MenuItem Header="_About" Command="{Binding AboutCommand}" ToolTip="About this application"/>
             </MenuItem>
         </Menu>
 

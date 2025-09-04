@@ -95,4 +95,6 @@ public partial class MainWindow : Window
             _navigationService.RegisterView("Utilities", typeof(UtilitiesView), typeof(UtilitiesViewModel));
             // Add more views as they are created
         }
-    }
+
+
+}
