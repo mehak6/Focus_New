@@ -67,9 +67,9 @@ public partial class VehicleDisplayItem : ObservableObject
     private decimal _balance;
 
     /// <summary>
-    /// Formatted balance string
+    /// Formatted balance string in INR format
     /// </summary>
-    public string FormattedBalance => Balance.ToString("C2");
+    public string FormattedBalance => $"₹{Balance.ToString("N2", System.Globalization.CultureInfo.CreateSpecificCulture("en-IN"))}";
 
     /// <summary>
     /// Last transaction date for this vehicle
