@@ -213,17 +213,16 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                 var allVehicles = await _dataService.Vehicles.GetActiveByCompanyIdAsync(_company.CompanyId);
                 var cutoffDate = DateTime.Today.AddDays(-RecoveryDays);
                 
-                decimal totalRecoveryAmount = 0m;
                 int vehicleCount = 0;
                 
                 foreach (var vehicle in allVehicles)
                 {
-                    // Get all transactions for this vehicle
+                    // Get all credit transactions for this vehicle
                     var vehicleVouchers = await _dataService.Vouchers.GetByVehicleIdAsync(vehicle.VehicleId);
+                    var creditVouchers = vehicleVouchers.Where(v => v.DrCr == "C").ToList();
                     
                     // Find the last credit transaction
-                    var lastCreditVoucher = vehicleVouchers
-                        .Where(v => v.DrCr == "C")
+                    var lastCreditVoucher = creditVouchers
                         .OrderByDescending(v => v.Date)
                         .ThenByDescending(v => v.VoucherId)
                         .FirstOrDefault();
@@ -232,12 +231,15 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                     bool shouldInclude = false;
                     DateTime? lastCreditDate = null;
                     int daysSinceLastCredit = 0;
+                    string narration = "";
                     
                     if (lastCreditVoucher == null)
                     {
                         // No credit transactions ever - include in recovery
                         shouldInclude = true;
-                        daysSinceLastCredit = 9999; // Very large number to indicate "never"
+                        daysSinceLastCredit = 9999;
+                        narration = "No credits ever";
+                        lastCreditDate = DateTime.MinValue;
                     }
                     else if (lastCreditVoucher.Date < cutoffDate)
                     {
@@ -245,36 +247,30 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                         shouldInclude = true;
                         lastCreditDate = lastCreditVoucher.Date;
                         daysSinceLastCredit = (int)(DateTime.Today - lastCreditVoucher.Date).TotalDays;
+                        narration = $"{daysSinceLastCredit} days since last credit";
                     }
                     
+                    // Include ALL vehicles that meet the criteria (no balance check needed)
                     if (shouldInclude)
                     {
-                        // Calculate current balance for this vehicle
-                        var balance = await _dataService.Vouchers.GetVehicleBalanceAsync(vehicle.VehicleId);
+                        vehicleCount++;
                         
-                        // Only include vehicles with positive balance (money to recover)
-                        if (balance > 0)
+                        ReportRows.Add(new ReportRow
                         {
-                            totalRecoveryAmount += balance;
-                            vehicleCount++;
-                            
-                            ReportRows.Add(new ReportRow
-                            {
-                                Date = lastCreditDate ?? DateTime.MinValue,
-                                VoucherNumber = 0,
-                                VehicleNumber = vehicle.VehicleNumber,
-                                Narration = daysSinceLastCredit == 9999 ? "No credits ever" : $"{daysSinceLastCredit} days since last credit",
-                                Amount = balance,
-                                DrCr = "D",
-                                RunningBalance = balance
-                            });
-                        }
+                            Date = lastCreditDate ?? DateTime.MinValue,
+                            VoucherNumber = 0,
+                            VehicleNumber = vehicle.VehicleNumber,
+                            Narration = narration,
+                            Amount = 0m, // No amount needed for this report
+                            DrCr = "-", // No Dr/Cr needed
+                            RunningBalance = 0m // No balance needed
+                        });
                     }
                 }
                 
-                TotalDebits = totalRecoveryAmount;
+                TotalDebits = 0m;
                 TotalCredits = 0m;
-                StatusMessage = $"Found {vehicleCount} vehicles requiring recovery totaling ₹{totalRecoveryAmount.ToString("N2", System.Globalization.CultureInfo.CreateSpecificCulture("en-IN"))}";
+                StatusMessage = $"Found {vehicleCount} vehicles with no credit transactions in the last {RecoveryDays} days";
             }
             else
             {
