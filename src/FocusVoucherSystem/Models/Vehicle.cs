@@ -63,6 +63,11 @@ public class Vehicle
         : $"{VehicleNumber} - {Description}";
 
     /// <summary>
+    /// Gets the formatted balance for this vehicle in INR format
+    /// </summary>
+    public string FormattedBalance => $"₹{CalculateBalance().ToString("N2", System.Globalization.CultureInfo.CreateSpecificCulture("en-IN"))}";
+
+    /// <summary>
     /// Calculates the current balance for this vehicle
     /// Note: This should be computed via repository for performance
     /// </summary>

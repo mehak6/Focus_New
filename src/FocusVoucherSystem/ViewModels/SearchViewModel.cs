@@ -158,9 +158,10 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
         }
 
         var term = VehicleSearchTerm.ToLowerInvariant();
-        var filtered = _allVehicles.Where(v =>
-            v.VehicleNumber.ToLowerInvariant().Contains(term) ||
-            (v.Description?.ToLowerInvariant().Contains(term) == true)).Take(10);
+        var filtered = _allVehicles
+            .Where(v => MatchesVehicleSearchTerm(v, term))
+            .OrderBy(v => GetVehicleSearchRelevanceScore(v, term))
+            .Take(10);
 
         foreach (var vehicle in filtered)
         {
@@ -415,6 +416,65 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     {
         // Save any pending changes or cleanup
         await Task.CompletedTask;
+    }
+
+    #endregion
+
+    #region Private Helper Methods
+
+    /// <summary>
+    /// Enhanced search matching that supports partial vehicle numbers and fuzzy matching
+    /// </summary>
+    private bool MatchesVehicleSearchTerm(VehicleDisplayItem vehicle, string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm)) return true;
+        
+        var term = searchTerm.ToLowerInvariant();
+        
+        // Check exact matches first (highest priority)
+        if (vehicle.VehicleNumber.ToLowerInvariant().Contains(term) ||
+            vehicle.Description?.ToLowerInvariant().Contains(term) == true)
+        {
+            return true;
+        }
+        
+        // Check if search term could be a partial vehicle number (remove common separators)
+        var cleanVehicleNumber = vehicle.VehicleNumber.Replace("-", "").Replace(" ", "").Replace(".", "").ToLowerInvariant();
+        var cleanSearchTerm = term.Replace("-", "").Replace(" ", "").Replace(".", "");
+        
+        if (cleanVehicleNumber.Contains(cleanSearchTerm))
+        {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /// <summary>
+    /// Calculate search relevance score (lower is better)
+    /// </summary>
+    private int GetVehicleSearchRelevanceScore(VehicleDisplayItem vehicle, string searchTerm)
+    {
+        var term = searchTerm.ToLowerInvariant();
+        int score = 100; // Base score
+        
+        // Exact vehicle number match gets highest priority (lowest score)
+        if (vehicle.VehicleNumber.ToLowerInvariant() == term)
+            return 1;
+            
+        // Vehicle number starts with search term gets high priority
+        if (vehicle.VehicleNumber.ToLowerInvariant().StartsWith(term))
+            return 2;
+            
+        // Vehicle number contains search term
+        if (vehicle.VehicleNumber.ToLowerInvariant().Contains(term))
+            score -= 30;
+            
+        // Description contains search term
+        if (vehicle.Description?.ToLowerInvariant().Contains(term) == true)
+            score -= 10;
+            
+        return score;
     }
 
     #endregion

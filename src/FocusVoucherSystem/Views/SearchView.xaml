@@ -8,6 +8,7 @@
              d:DesignHeight="600" d:DesignWidth="1200">
     
     <UserControl.Resources>
+        <local:INRCurrencyConverter x:Key="INRCurrencyConverter" />
         <!-- Styles -->
         <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="16"/>
@@ -299,7 +300,7 @@
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
 
-                <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=C2}" Width="100" IsReadOnly="True">
+                <DataGridTextColumn Header="Amount" Binding="{Binding Amount, Converter={StaticResource INRCurrencyConverter}}" Width="120" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="TextAlignment" Value="Right"/>
@@ -338,7 +339,7 @@
                     </DataGridTextColumn.CellStyle>
                 </DataGridTextColumn>
 
-                <DataGridTextColumn Header="Running Balance" Binding="{Binding RunningBalance, StringFormat=C2}" Width="120" IsReadOnly="True">
+                <DataGridTextColumn Header="Running Balance" Binding="{Binding RunningBalance, Converter={StaticResource INRCurrencyConverter}}" Width="140" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="TextAlignment" Value="Right"/>

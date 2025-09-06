@@ -96,9 +96,9 @@ public partial class Voucher : ObservableObject
     public decimal SignedAmount => IsDebit ? Amount : -Amount;
 
     /// <summary>
-    /// Gets a formatted display string for the amount with Dr/Cr indicator
+    /// Gets a formatted display string for the amount with Dr/Cr indicator in INR format
     /// </summary>
-    public string FormattedAmount => $"{Amount.ToString("C2")} {DrCr}";
+    public string FormattedAmount => $"₹{Amount.ToString("N2", System.Globalization.CultureInfo.CreateSpecificCulture("en-IN"))} {DrCr}";
 
     /// <summary>
     /// Gets a short description for display purposes
