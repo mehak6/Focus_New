@@ -112,6 +112,7 @@ public partial class MainWindow : Window
             _navigationService.RegisterView("VehicleManagement", typeof(VehicleManagementView), typeof(VehicleManagementViewModel));
             _navigationService.RegisterView("Search", typeof(SearchView), typeof(SearchViewModel));
             _navigationService.RegisterView("Reports", typeof(ReportsView), typeof(ReportsViewModel));
+            _navigationService.RegisterView("Recovery", typeof(RecoveryView), typeof(RecoveryViewModel));
             _navigationService.RegisterView("Utilities", typeof(UtilitiesView), typeof(UtilitiesViewModel));
             // Add more views as they are created
         }

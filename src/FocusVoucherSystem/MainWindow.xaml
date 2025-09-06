@@ -238,6 +238,10 @@
                             Style="{StaticResource TabButtonStyle}"
                             Command="{Binding NavigateToReportsCommand}"
                             ToolTip="F4 - View and print reports"/>
+                    <Button Content="RECOVERY"
+                            Style="{StaticResource TabButtonStyle}"
+                            Command="{Binding NavigateToRecoveryCommand}"
+                            ToolTip="Find vehicles with no credit transactions"/>
                     <Button Content="UTILITIES"
                             Style="{StaticResource TabButtonStyle}"
                             Command="{Binding NavigateToUtilitiesCommand}"

@@ -241,6 +241,14 @@ public partial class MainWindowViewModel : BaseViewModel, INavigationAware
 
 
     [RelayCommand]
+    private async Task NavigateToRecovery()
+    {
+        SelectedTab = "Recovery";
+        await _navigationService.NavigateToAsync("Recovery", CurrentCompany);
+        StatusMessage = "Recovery Statement";
+    }
+
+    [RelayCommand]
     private async Task NavigateToUtilities()
     {
         SelectedTab = "Utilities";
