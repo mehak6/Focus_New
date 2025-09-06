@@ -18,7 +18,7 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
     private string _statusMessage = string.Empty;
 
     [ObservableProperty]
-    private ObservableCollection<string> _reportTypes = new(new[] { "Day Book (Full Entries)", "Day Book (Consolidated)", "Vehicle Ledger", "Trial Balance" });
+    private ObservableCollection<string> _reportTypes = new(new[] { "Day Book (Full Entries)", "Day Book (Consolidated)", "Vehicle Ledger", "Trial Balance", "Recovery Statement" });
 
     [ObservableProperty]
     private string _selectedReportType = "Day Book (Full Entries)";
@@ -50,6 +50,14 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
     [ObservableProperty]
     private string _netDrCr = "D";
 
+    [ObservableProperty]
+    private int _recoveryDays = 30;
+
+    /// <summary>
+    /// Gets whether Recovery Statement is currently selected
+    /// </summary>
+    public bool IsRecoveryStatementSelected => SelectedReportType == "Recovery Statement";
+
     private Company? _company;
 
     public ReportsViewModel(DataService dataService, NavigationService navigationService)
@@ -78,6 +86,9 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
             // Reset to default (first day of current month) for other reports
             StartDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         }
+        
+        // Notify that the Recovery Statement selection state changed
+        OnPropertyChanged(nameof(IsRecoveryStatementSelected));
     }
 
     private void UpdateNetTotals()
@@ -193,6 +204,77 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                 }
                 TotalDebits = debits;
                 TotalCredits = credits;
+            }
+            else if (SelectedReportType == "Recovery Statement")
+            {
+                if (_company == null) return;
+                
+                // Get all vehicles for the company
+                var allVehicles = await _dataService.Vehicles.GetActiveByCompanyIdAsync(_company.CompanyId);
+                var cutoffDate = DateTime.Today.AddDays(-RecoveryDays);
+                
+                decimal totalRecoveryAmount = 0m;
+                int vehicleCount = 0;
+                
+                foreach (var vehicle in allVehicles)
+                {
+                    // Get all transactions for this vehicle
+                    var vehicleVouchers = await _dataService.Vouchers.GetByVehicleIdAsync(vehicle.VehicleId);
+                    
+                    // Find the last credit transaction
+                    var lastCreditVoucher = vehicleVouchers
+                        .Where(v => v.DrCr == "C")
+                        .OrderByDescending(v => v.Date)
+                        .ThenByDescending(v => v.VoucherId)
+                        .FirstOrDefault();
+                    
+                    // Check if vehicle has no credit within the specified days
+                    bool shouldInclude = false;
+                    DateTime? lastCreditDate = null;
+                    int daysSinceLastCredit = 0;
+                    
+                    if (lastCreditVoucher == null)
+                    {
+                        // No credit transactions ever - include in recovery
+                        shouldInclude = true;
+                        daysSinceLastCredit = 9999; // Very large number to indicate "never"
+                    }
+                    else if (lastCreditVoucher.Date < cutoffDate)
+                    {
+                        // Last credit was before cutoff date - include in recovery
+                        shouldInclude = true;
+                        lastCreditDate = lastCreditVoucher.Date;
+                        daysSinceLastCredit = (int)(DateTime.Today - lastCreditVoucher.Date).TotalDays;
+                    }
+                    
+                    if (shouldInclude)
+                    {
+                        // Calculate current balance for this vehicle
+                        var balance = await _dataService.Vouchers.GetVehicleBalanceAsync(vehicle.VehicleId);
+                        
+                        // Only include vehicles with positive balance (money to recover)
+                        if (balance > 0)
+                        {
+                            totalRecoveryAmount += balance;
+                            vehicleCount++;
+                            
+                            ReportRows.Add(new ReportRow
+                            {
+                                Date = lastCreditDate ?? DateTime.MinValue,
+                                VoucherNumber = 0,
+                                VehicleNumber = vehicle.VehicleNumber,
+                                Narration = daysSinceLastCredit == 9999 ? "No credits ever" : $"{daysSinceLastCredit} days since last credit",
+                                Amount = balance,
+                                DrCr = "D",
+                                RunningBalance = balance
+                            });
+                        }
+                    }
+                }
+                
+                TotalDebits = totalRecoveryAmount;
+                TotalCredits = 0m;
+                StatusMessage = $"Found {vehicleCount} vehicles requiring recovery totaling ₹{totalRecoveryAmount.ToString("N2", System.Globalization.CultureInfo.CreateSpecificCulture("en-IN"))}";
             }
             else
             {
