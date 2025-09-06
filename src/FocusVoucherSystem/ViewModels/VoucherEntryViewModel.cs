@@ -458,13 +458,68 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
         }
 
         var hit = Vehicles
-            .Where(v => (v.DisplayName?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
-                     || (v.VehicleNumber?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
-                     || (v.Description?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false))
+            .Where(v => MatchesSearchTerm(v, term))
+            .OrderBy(v => GetSearchRelevanceScore(v, term))
             .Take(20);
 
         foreach (var v in hit)
             FilteredVehicles.Add(v);
+    }
+
+    /// <summary>
+    /// Enhanced search matching that supports partial vehicle numbers and fuzzy matching
+    /// </summary>
+    private bool MatchesSearchTerm(Vehicle vehicle, string searchTerm)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm)) return true;
+        
+        var term = searchTerm.ToLowerInvariant();
+        
+        // Check exact matches first (highest priority)
+        if (vehicle.VehicleNumber?.ToLowerInvariant().Contains(term) == true ||
+            vehicle.DisplayName?.ToLowerInvariant().Contains(term) == true ||
+            vehicle.Description?.ToLowerInvariant().Contains(term) == true)
+        {
+            return true;
+        }
+        
+        // Check if search term could be a partial vehicle number (remove common separators)
+        var cleanVehicleNumber = vehicle.VehicleNumber?.Replace("-", "").Replace(" ", "").Replace(".", "").ToLowerInvariant();
+        var cleanSearchTerm = term.Replace("-", "").Replace(" ", "").Replace(".", "");
+        
+        if (cleanVehicleNumber?.Contains(cleanSearchTerm) == true)
+        {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    /// <summary>
+    /// Calculate search relevance score (lower is better)
+    /// </summary>
+    private int GetSearchRelevanceScore(Vehicle vehicle, string searchTerm)
+    {
+        var term = searchTerm.ToLowerInvariant();
+        int score = 100; // Base score
+        
+        // Exact vehicle number match gets highest priority (lowest score)
+        if (vehicle.VehicleNumber?.ToLowerInvariant() == term)
+            return 1;
+            
+        // Vehicle number starts with search term gets high priority
+        if (vehicle.VehicleNumber?.ToLowerInvariant().StartsWith(term) == true)
+            return 2;
+            
+        // Vehicle number contains search term
+        if (vehicle.VehicleNumber?.ToLowerInvariant().Contains(term) == true)
+            score -= 30;
+            
+        // Description contains search term
+        if (vehicle.Description?.ToLowerInvariant().Contains(term) == true)
+            score -= 10;
+            
+        return score;
     }
 
     [RelayCommand]

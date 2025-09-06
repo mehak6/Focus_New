@@ -15,6 +15,7 @@ public static class Converters
     public static readonly IValueConverter BooleanToActiveStatusConverter = new BooleanToActiveStatusConverter();
     public static readonly IValueConverter VehicleBalanceConverter = new VehicleBalanceConverter();
     public static readonly IValueConverter LastTransactionDateConverter = new LastTransactionDateConverter();
+    public static readonly IValueConverter INRCurrencyConverter = new INRCurrencyConverter();
 }
 
 /// <summary>
@@ -97,20 +98,28 @@ public class BooleanToActiveStatusConverter : IValueConverter
 }
 
 /// <summary>
-/// Converter for vehicle balance (placeholder - will be enhanced)
+/// Converter for vehicle balance with INR formatting
 /// </summary>
 public class VehicleBalanceConverter : IValueConverter
 {
     public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
     {
-        // This is a placeholder - in a real implementation, you'd calculate the actual balance
-        // For now, return a formatted currency placeholder
-        return 0m.ToString("C2");
+        if (value is decimal amount)
+        {
+            return FormatAsINR(amount);
+        }
+        
+        return "₹0.00";
     }
 
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
+    }
+    
+    private string FormatAsINR(decimal amount)
+    {
+        return $"₹{amount:N2}";
     }
 }
 
@@ -128,5 +137,59 @@ public class LastTransactionDateConverter : IValueConverter
     public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
     {
         throw new NotImplementedException();
+    }
+}
+
+/// <summary>
+/// Converter for displaying amounts in Indian Rupee (INR) format
+/// </summary>
+public class INRCurrencyConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value == null) return "₹0.00";
+        
+        if (value is decimal amount)
+        {
+            return FormatAsINR(amount);
+        }
+        
+        if (value is double doubleAmount)
+        {
+            return FormatAsINR((decimal)doubleAmount);
+        }
+        
+        if (value is float floatAmount)
+        {
+            return FormatAsINR((decimal)floatAmount);
+        }
+        
+        if (decimal.TryParse(value.ToString(), out decimal parsedAmount))
+        {
+            return FormatAsINR(parsedAmount);
+        }
+        
+        return "₹0.00";
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is string strValue && !string.IsNullOrWhiteSpace(strValue))
+        {
+            // Remove currency symbol and any formatting
+            var cleanValue = strValue.Replace("₹", "").Replace(",", "").Trim();
+            if (decimal.TryParse(cleanValue, out decimal amount))
+            {
+                return amount;
+            }
+        }
+        return 0m;
+    }
+    
+    private string FormatAsINR(decimal amount)
+    {
+        // Format with Indian numbering system (lakhs, crores)
+        var formattedAmount = amount.ToString("N2", new CultureInfo("en-IN"));
+        return $"₹{formattedAmount}";
     }
 }
