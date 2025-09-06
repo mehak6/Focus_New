@@ -18,7 +18,7 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
     private string _statusMessage = string.Empty;
 
     [ObservableProperty]
-    private ObservableCollection<string> _reportTypes = new(new[] { "Day Book (Full Entries)", "Day Book (Consolidated)", "Vehicle Ledger", "Trial Balance", "Recovery Statement" });
+    private ObservableCollection<string> _reportTypes = new(new[] { "Day Book (Full Entries)", "Day Book (Consolidated)", "Vehicle Ledger", "Trial Balance" });
 
     [ObservableProperty]
     private string _selectedReportType = "Day Book (Full Entries)";
@@ -50,13 +50,6 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
     [ObservableProperty]
     private string _netDrCr = "D";
 
-    [ObservableProperty]
-    private int _recoveryDays = 30;
-
-    /// <summary>
-    /// Gets whether Recovery Statement is currently selected
-    /// </summary>
-    public bool IsRecoveryStatementSelected => SelectedReportType == "Recovery Statement";
 
     private Company? _company;
 
@@ -86,9 +79,6 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
             // Reset to default (first day of current month) for other reports
             StartDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         }
-        
-        // Notify that the Recovery Statement selection state changed
-        OnPropertyChanged(nameof(IsRecoveryStatementSelected));
     }
 
     private void UpdateNetTotals()
@@ -204,73 +194,6 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                 }
                 TotalDebits = debits;
                 TotalCredits = credits;
-            }
-            else if (SelectedReportType == "Recovery Statement")
-            {
-                if (_company == null) return;
-                
-                // Get all vehicles for the company
-                var allVehicles = await _dataService.Vehicles.GetActiveByCompanyIdAsync(_company.CompanyId);
-                var cutoffDate = DateTime.Today.AddDays(-RecoveryDays);
-                
-                int vehicleCount = 0;
-                
-                foreach (var vehicle in allVehicles)
-                {
-                    // Get all credit transactions for this vehicle
-                    var vehicleVouchers = await _dataService.Vouchers.GetByVehicleIdAsync(vehicle.VehicleId);
-                    var creditVouchers = vehicleVouchers.Where(v => v.DrCr == "C").ToList();
-                    
-                    // Find the last credit transaction
-                    var lastCreditVoucher = creditVouchers
-                        .OrderByDescending(v => v.Date)
-                        .ThenByDescending(v => v.VoucherId)
-                        .FirstOrDefault();
-                    
-                    // Check if vehicle has no credit within the specified days
-                    bool shouldInclude = false;
-                    DateTime? lastCreditDate = null;
-                    int daysSinceLastCredit = 0;
-                    string narration = "";
-                    
-                    if (lastCreditVoucher == null)
-                    {
-                        // No credit transactions ever - include in recovery
-                        shouldInclude = true;
-                        daysSinceLastCredit = 9999;
-                        narration = "No credits ever";
-                        lastCreditDate = DateTime.MinValue;
-                    }
-                    else if (lastCreditVoucher.Date < cutoffDate)
-                    {
-                        // Last credit was before cutoff date - include in recovery
-                        shouldInclude = true;
-                        lastCreditDate = lastCreditVoucher.Date;
-                        daysSinceLastCredit = (int)(DateTime.Today - lastCreditVoucher.Date).TotalDays;
-                        narration = $"{daysSinceLastCredit} days since last credit";
-                    }
-                    
-                    // Include ALL vehicles that meet the criteria (no balance check needed)
-                    if (shouldInclude)
-                    {
-                        vehicleCount++;
-                        
-                        ReportRows.Add(new ReportRow
-                        {
-                            Date = lastCreditDate ?? DateTime.MinValue,
-                            VoucherNumber = 0,
-                            VehicleNumber = vehicle.VehicleNumber,
-                            Narration = narration,
-                            Amount = 0m, // No amount needed for this report
-                            DrCr = "-", // No Dr/Cr needed
-                            RunningBalance = 0m // No balance needed
-                        });
-                    }
-                }
-                
-                TotalDebits = 0m;
-                TotalCredits = 0m;
-                StatusMessage = $"Found {vehicleCount} vehicles with no credit transactions in the last {RecoveryDays} days";
             }
             else
             {
