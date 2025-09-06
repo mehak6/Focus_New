@@ -62,6 +62,23 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
 
     partial void OnTotalDebitsChanged(decimal value) => UpdateNetTotals();
     partial void OnTotalCreditsChanged(decimal value) => UpdateNetTotals();
+    
+    /// <summary>
+    /// Handles report type selection changes - automatically sets from date for Vehicle Ledger
+    /// </summary>
+    partial void OnSelectedReportTypeChanged(string value)
+    {
+        if (value == "Vehicle Ledger")
+        {
+            // Set start date to January 1, 2001 for Vehicle Ledger reports
+            StartDate = new DateTime(2001, 1, 1);
+        }
+        else
+        {
+            // Reset to default (first day of current month) for other reports
+            StartDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        }
+    }
 
     private void UpdateNetTotals()
     {
