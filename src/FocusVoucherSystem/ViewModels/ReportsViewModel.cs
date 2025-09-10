@@ -89,6 +89,7 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                 var grouped = await _reportService.GetDayBookConsolidatedAsync(
                     _company.CompanyId, StartDate, EndDate);
 
+                var tempRows = new List<ReportRow>();
                 foreach (var e in grouped)
                 {
                     var net = e.TotalDebits - e.TotalCredits;
@@ -98,7 +99,7 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                     debits += e.TotalDebits;
                     credits += e.TotalCredits;
 
-                    ReportRows.Add(new ReportRow
+                    tempRows.Add(new ReportRow
                     {
                         Date = e.Date,
                         VoucherNumber = 0,
@@ -110,6 +111,15 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                     });
                 }
 
+                // Update UI on main thread
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    foreach (var row in tempRows)
+                    {
+                        ReportRows.Add(row);
+                    }
+                });
+
                 TotalDebits = debits;
                 TotalCredits = credits;
             }
@@ -118,10 +128,12 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                 if (_company == null) return;
                 var trial = await _reportService.GetTrialBalanceAsync(_company.CompanyId, EndDate);
                 decimal debits = 0m, credits = 0m;
+                var tempRows = new List<ReportRow>();
+
                 foreach (var t in trial)
                 {
                     if (t.DrCr == "D") debits += t.Amount; else credits += t.Amount;
-                    ReportRows.Add(new ReportRow
+                    tempRows.Add(new ReportRow
                     {
                         Date = EndDate,
                         VoucherNumber = 0,
@@ -132,6 +144,16 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                         RunningBalance = 0m
                     });
                 }
+
+                // Update UI on main thread
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    foreach (var row in tempRows)
+                    {
+                        ReportRows.Add(row);
+                    }
+                });
+
                 TotalDebits = debits;
                 TotalCredits = credits;
             }
@@ -146,6 +168,7 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
 
                 decimal running = 0m;
                 decimal debits = 0m, credits = 0m;
+                var tempRows = new List<ReportRow>();
 
                 foreach (var v in result.OrderBy(v => v.Date).ThenBy(v => v.VoucherNumber))
                 {
@@ -153,7 +176,7 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                     if (v.DrCr == "D") { running += amount; debits += amount; }
                     else { running -= amount; credits += amount; }
 
-                    ReportRows.Add(new ReportRow
+                    tempRows.Add(new ReportRow
                     {
                         Date = v.Date,
                         VoucherNumber = v.VoucherNumber,
@@ -164,6 +187,15 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                         RunningBalance = running
                     });
                 }
+
+                // Update UI on main thread
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    foreach (var row in tempRows)
+                    {
+                        ReportRows.Add(row);
+                    }
+                });
 
                 TotalDebits = debits;
                 TotalCredits = credits;
