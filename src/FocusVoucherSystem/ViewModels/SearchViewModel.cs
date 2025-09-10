@@ -62,13 +62,19 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     /// </summary>
     public async Task LoadDataAsync()
     {
-        if (CurrentCompany == null) return;
+        if (CurrentCompany == null) 
+        {
+            StatusMessage = "❌ No company selected for search";
+            return;
+        }
 
         await ExecuteAsync(async () =>
         {
             // Load all vehicles with balance information for search
             var vehicles = await _dataService.Vehicles.GetByCompanyIdAsync(CurrentCompany.CompanyId);
             var vehicleDisplayItems = new List<VehicleDisplayItem>();
+
+            StatusMessage = $"🔄 Loading {vehicles.Count()} vehicles for company {CurrentCompany.Name}...";
 
             foreach (var vehicle in vehicles.OrderBy(v => v.VehicleNumber))
             {
@@ -82,7 +88,7 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
             }
 
             _allVehicles = vehicleDisplayItems;
-            StatusMessage = $"Loaded {_allVehicles.Count} vehicles. Search for a vehicle to view vouchers.";
+            StatusMessage = $"✅ Loaded {_allVehicles.Count} vehicles. Type vehicle number to search.";
 
         }, "Loading vehicles...");
     }
@@ -94,8 +100,12 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     {
         await ExecuteAsync(async () =>
         {
+            StatusMessage = $"🔄 Loading vouchers for {vehicle.VehicleNumber}...";
+            
             var vouchers = await _dataService.Vouchers.GetByVehicleIdAsync(vehicle.VehicleId);
             _allVouchers = vouchers.OrderByDescending(v => v.Date).ThenByDescending(v => v.VoucherNumber).ToList();
+            
+            StatusMessage = $"📊 Retrieved {_allVouchers.Count} vouchers from database...";
             
             // Calculate running balances
             CalculateRunningBalances();
@@ -116,11 +126,11 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
             // Update status message for both empty and non-empty cases
             if (TotalVouchers == 0)
             {
-                StatusMessage = $"No vouchers found for {vehicle.DisplayName}. Current balance: {vehicle.FormattedBalance}";
+                StatusMessage = $"❌ No vouchers found for {vehicle.DisplayName}. Current balance: {vehicle.FormattedBalance}";
             }
             else
             {
-                StatusMessage = $"Found {TotalVouchers} vouchers for {vehicle.DisplayName}. Current balance: {vehicle.FormattedBalance}";
+                StatusMessage = $"✅ Loaded {TotalVouchers} vouchers for {vehicle.DisplayName}. Balance: {vehicle.FormattedBalance}";
             }
 
         }, "Loading vouchers...");
@@ -154,6 +164,7 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
         if (string.IsNullOrWhiteSpace(VehicleSearchTerm))
         {
             IsVehicleSearchOpen = false;
+            StatusMessage = $"✅ Loaded {_allVehicles.Count} vehicles. Type vehicle number to search.";
             return;
         }
 
@@ -161,7 +172,7 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
         var filtered = _allVehicles
             .Where(v => MatchesVehicleSearchTerm(v, term))
             .OrderBy(v => GetVehicleSearchRelevanceScore(v, term))
-            .Take(10);
+            .Take(20);
 
         foreach (var vehicle in filtered)
         {
@@ -169,6 +180,15 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
         }
 
         IsVehicleSearchOpen = VehicleSearchResults.Count > 0;
+        
+        if (VehicleSearchResults.Count > 0)
+        {
+            StatusMessage = $"🔍 Found {VehicleSearchResults.Count} matches for '{VehicleSearchTerm}'";
+        }
+        else if (!string.IsNullOrWhiteSpace(VehicleSearchTerm))
+        {
+            StatusMessage = $"❌ No vehicles found matching '{VehicleSearchTerm}'";
+        }
     }
 
     /// <summary>
@@ -423,56 +443,186 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     #region Private Helper Methods
 
     /// <summary>
-    /// Enhanced search matching that supports partial vehicle numbers and fuzzy matching
+    /// Enhanced search matching that supports flexible vehicle number typing
     /// </summary>
     private bool MatchesVehicleSearchTerm(VehicleDisplayItem vehicle, string searchTerm)
     {
         if (string.IsNullOrWhiteSpace(searchTerm)) return true;
         
-        var term = searchTerm.ToLowerInvariant();
+        var term = searchTerm.ToLowerInvariant().Trim();
+        var vehicleNumber = vehicle.VehicleNumber.ToLowerInvariant();
+        var description = vehicle.Description?.ToLowerInvariant() ?? "";
         
-        // Check exact matches first (highest priority)
-        if (vehicle.VehicleNumber.ToLowerInvariant().Contains(term) ||
-            vehicle.Description?.ToLowerInvariant().Contains(term) == true)
-        {
+        // 1. Exact match (highest priority)
+        if (vehicleNumber == term || description == term)
             return true;
+            
+        // 2. Starts with match (very high priority)
+        if (vehicleNumber.StartsWith(term) || description.StartsWith(term))
+            return true;
+            
+        // 3. Contains match (high priority)
+        if (vehicleNumber.Contains(term) || description.Contains(term))
+            return true;
+            
+        // 4. Clean matching - remove all separators and spaces
+        var cleanVehicle = CleanVehicleNumber(vehicleNumber);
+        var cleanTerm = CleanVehicleNumber(term);
+        
+        if (cleanVehicle.Contains(cleanTerm))
+            return true;
+            
+        // 5. Flexible pattern matching for common vehicle number formats
+        if (MatchesVehiclePattern(vehicleNumber, term))
+            return true;
+            
+        // 6. Word-based matching for descriptions
+        if (MatchesWordBased(description, term))
+            return true;
+            
+        // 7. Number sequence matching (e.g., "1234" matches "AB-1234-CD")
+        if (MatchesNumberSequence(vehicleNumber, term))
+            return true;
+            
+        return false;
+    }
+    
+    /// <summary>
+    /// Cleans vehicle number by removing all non-alphanumeric characters
+    /// </summary>
+    private string CleanVehicleNumber(string input)
+    {
+        return new string(input.Where(char.IsLetterOrDigit).ToArray());
+    }
+    
+    /// <summary>
+    /// Matches flexible vehicle number patterns
+    /// </summary>
+    private bool MatchesVehiclePattern(string vehicleNumber, string searchTerm)
+    {
+        // Handle common patterns like:
+        // Search: "hr26" should match "HR-26-1234", "HR26AB1234", etc.
+        // Search: "1234" should match "HR-26-1234", "AB1234CD", etc.
+        
+        var cleanVehicle = CleanVehicleNumber(vehicleNumber);
+        var cleanTerm = CleanVehicleNumber(searchTerm);
+        
+        // If term is numeric, try to match number sequences
+        if (cleanTerm.All(char.IsDigit) && cleanTerm.Length >= 2)
+        {
+            var vehicleNumbers = new string(cleanVehicle.Where(char.IsDigit).ToArray());
+            if (vehicleNumbers.Contains(cleanTerm))
+                return true;
         }
         
-        // Check if search term could be a partial vehicle number (remove common separators)
-        var cleanVehicleNumber = vehicle.VehicleNumber.Replace("-", "").Replace(" ", "").Replace(".", "").ToLowerInvariant();
-        var cleanSearchTerm = term.Replace("-", "").Replace(" ", "").Replace(".", "");
-        
-        if (cleanVehicleNumber.Contains(cleanSearchTerm))
+        // If term contains letters and numbers, match in sequence
+        if (cleanTerm.Any(char.IsLetter) && cleanTerm.Any(char.IsDigit))
         {
-            return true;
+            return cleanVehicle.Contains(cleanTerm);
+        }
+        
+        // Letter-only matching (state codes, etc.)
+        if (cleanTerm.All(char.IsLetter) && cleanTerm.Length >= 2)
+        {
+            var vehicleLetters = new string(cleanVehicle.Where(char.IsLetter).ToArray());
+            if (vehicleLetters.Contains(cleanTerm))
+                return true;
         }
         
         return false;
     }
     
     /// <summary>
-    /// Calculate search relevance score (lower is better)
+    /// Matches word-based search in descriptions
+    /// </summary>
+    private bool MatchesWordBased(string description, string searchTerm)
+    {
+        if (string.IsNullOrEmpty(description)) return false;
+        
+        var words = description.Split(new[] { ' ', '-', '_', '.' }, StringSplitOptions.RemoveEmptyEntries);
+        return words.Any(word => word.StartsWith(searchTerm) || word.Contains(searchTerm));
+    }
+    
+    /// <summary>
+    /// Matches number sequences in vehicle numbers
+    /// </summary>
+    private bool MatchesNumberSequence(string vehicleNumber, string searchTerm)
+    {
+        if (!searchTerm.All(char.IsDigit) || searchTerm.Length < 2)
+            return false;
+            
+        // Extract all numeric sequences from vehicle number
+        var numbers = System.Text.RegularExpressions.Regex.Matches(vehicleNumber, @"\d+")
+            .Cast<System.Text.RegularExpressions.Match>()
+            .Select(m => m.Value)
+            .ToList();
+            
+        return numbers.Any(num => num.Contains(searchTerm) || num.StartsWith(searchTerm));
+    }
+    
+    /// <summary>
+    /// Calculate search relevance score (lower is better) with enhanced prioritization
     /// </summary>
     private int GetVehicleSearchRelevanceScore(VehicleDisplayItem vehicle, string searchTerm)
     {
-        var term = searchTerm.ToLowerInvariant();
-        int score = 100; // Base score
+        var term = searchTerm.ToLowerInvariant().Trim();
+        var vehicleNumber = vehicle.VehicleNumber.ToLowerInvariant();
+        var description = vehicle.Description?.ToLowerInvariant() ?? "";
         
-        // Exact vehicle number match gets highest priority (lowest score)
-        if (vehicle.VehicleNumber.ToLowerInvariant() == term)
-            return 1;
+        // Exact matches (highest priority)
+        if (vehicleNumber == term) return 1;
+        if (description == term) return 2;
+        
+        // Starts with matches (very high priority)
+        if (vehicleNumber.StartsWith(term)) return 3;
+        if (description.StartsWith(term)) return 4;
+        
+        // Clean exact match
+        var cleanVehicle = CleanVehicleNumber(vehicleNumber);
+        var cleanTerm = CleanVehicleNumber(term);
+        if (cleanVehicle == cleanTerm) return 5;
+        if (cleanVehicle.StartsWith(cleanTerm)) return 6;
+        
+        int score = 100; // Base score for other matches
+        
+        // Vehicle number contains term (high priority)
+        if (vehicleNumber.Contains(term))
+            score -= 40;
             
-        // Vehicle number starts with search term gets high priority
-        if (vehicle.VehicleNumber.ToLowerInvariant().StartsWith(term))
-            return 2;
+        // Clean vehicle number contains clean term
+        if (cleanVehicle.Contains(cleanTerm))
+            score -= 35;
             
-        // Vehicle number contains search term
-        if (vehicle.VehicleNumber.ToLowerInvariant().Contains(term))
-            score -= 30;
+        // Number sequence matching
+        if (term.All(char.IsDigit) && term.Length >= 2)
+        {
+            var vehicleNumbers = new string(cleanVehicle.Where(char.IsDigit).ToArray());
+            if (vehicleNumbers.StartsWith(term))
+                score -= 30;
+            else if (vehicleNumbers.Contains(term))
+                score -= 25;
+        }
+        
+        // Letter sequence matching (state codes)
+        if (term.All(char.IsLetter) && term.Length >= 2)
+        {
+            var vehicleLetters = new string(cleanVehicle.Where(char.IsLetter).ToArray());
+            if (vehicleLetters.StartsWith(term))
+                score -= 28;
+            else if (vehicleLetters.Contains(term))
+                score -= 23;
+        }
+        
+        // Description matches (lower priority)
+        if (description.Contains(term))
+            score -= 15;
             
-        // Description contains search term
-        if (vehicle.Description?.ToLowerInvariant().Contains(term) == true)
-            score -= 10;
+        // Word-based description matches
+        var words = description.Split(new[] { ' ', '-', '_', '.' }, StringSplitOptions.RemoveEmptyEntries);
+        if (words.Any(word => word.StartsWith(term)))
+            score -= 12;
+        else if (words.Any(word => word.Contains(term)))
+            score -= 8;
             
         return score;
     }

@@ -16,26 +16,23 @@ public class ReportService
     }
 
     /// <summary>
-    /// Day Book (Full Entries) for company and date range; optionally filter by vehicle
+    /// Day Book (Full Entries) for company and date range - retrieves ALL vouchers within the specified period
     /// </summary>
-    public async Task<IEnumerable<Voucher>> GetDayBookAsync(int companyId, DateTime startDate, DateTime endDate, int? vehicleId = null)
+    public async Task<IEnumerable<Voucher>> GetDayBookAsync(int companyId, DateTime startDate, DateTime endDate)
     {
+        // Use GetByDateRangeAsync to get all vouchers within the date range
         var vouchers = await _dataService.Vouchers.GetByDateRangeAsync(companyId, startDate, endDate);
-
-        if (vehicleId.HasValue)
-        {
-            vouchers = vouchers.Where(v => v.VehicleId == vehicleId.Value);
-        }
-
-        return vouchers;
+        
+        // Return vouchers ordered by date and voucher number for proper chronological display
+        return vouchers.OrderBy(v => v.Date).ThenBy(v => v.VoucherNumber);
     }
 
     /// <summary>
-    /// Day Book (Consolidated): totals per date for a range; optional vehicle filter
+    /// Day Book (Consolidated): totals per date for a range
     /// </summary>
-    public async Task<IEnumerable<ConsolidatedDayBookEntry>> GetDayBookConsolidatedAsync(int companyId, DateTime startDate, DateTime endDate, int? vehicleId = null)
+    public async Task<IEnumerable<ConsolidatedDayBookEntry>> GetDayBookConsolidatedAsync(int companyId, DateTime startDate, DateTime endDate)
     {
-        var vouchers = await GetDayBookAsync(companyId, startDate, endDate, vehicleId);
+        var vouchers = await GetDayBookAsync(companyId, startDate, endDate);
 
         var grouped = vouchers
             .GroupBy(v => v.Date.Date)
