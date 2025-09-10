@@ -111,17 +111,16 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
             CalculateRunningBalances();
             
             // Always clear and refresh the voucher list (even if empty)
-            Vouchers.Clear();
-            foreach (var voucher in _allVouchers)
+            // Ensure UI updates happen on the main thread
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                Vouchers.Add(voucher);
-            }
-
-            TotalVouchers = _allVouchers.Count;
-            
-            // Force UI update
-            OnPropertyChanged(nameof(Vouchers));
-            OnPropertyChanged(nameof(TotalVouchers));
+                Vouchers.Clear();
+                foreach (var voucher in _allVouchers)
+                {
+                    Vouchers.Add(voucher);
+                }
+                TotalVouchers = _allVouchers.Count;
+            });
             
             // Update status message for both empty and non-empty cases
             if (TotalVouchers == 0)
