@@ -18,7 +18,7 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
     private string _statusMessage = string.Empty;
 
     [ObservableProperty]
-    private ObservableCollection<string> _reportTypes = new(new[] { "Day Book (Full Entries)", "Day Book (Consolidated)", "Vehicle Ledger", "Trial Balance" });
+    private ObservableCollection<string> _reportTypes = new(new[] { "Day Book (Full Entries)", "Day Book (Consolidated)", "Trial Balance" });
 
     [ObservableProperty]
     private string _selectedReportType = "Day Book (Full Entries)";
@@ -29,11 +29,6 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
     [ObservableProperty]
     private DateTime _endDate = DateTime.Today;
 
-    [ObservableProperty]
-    private ObservableCollection<Vehicle> _vehicles = new();
-
-    [ObservableProperty]
-    private Vehicle? _selectedVehicle;
 
     [ObservableProperty]
     private ObservableCollection<ReportRow> _reportRows = new();
@@ -64,22 +59,6 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
     partial void OnTotalDebitsChanged(decimal value) => UpdateNetTotals();
     partial void OnTotalCreditsChanged(decimal value) => UpdateNetTotals();
     
-    /// <summary>
-    /// Handles report type selection changes - automatically sets from date for Vehicle Ledger
-    /// </summary>
-    partial void OnSelectedReportTypeChanged(string value)
-    {
-        if (value == "Vehicle Ledger")
-        {
-            // Set start date to January 1, 2001 for Vehicle Ledger reports
-            StartDate = new DateTime(2001, 1, 1);
-        }
-        else
-        {
-            // Reset to default (first day of current month) for other reports
-            StartDate = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-        }
-    }
 
     private void UpdateNetTotals()
     {
@@ -91,10 +70,16 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
     [RelayCommand]
     private async Task GenerateReport()
     {
-        if (_company == null) return;
+        if (_company == null) 
+        {
+            StatusMessage = "❌ No company selected";
+            return;
+        }
+        
         await ExecuteAsync(async () =>
         {
             ReportRows.Clear();
+            StatusMessage = $"🔄 Generating {SelectedReportType} from {StartDate:dd/MM/yyyy} to {EndDate:dd/MM/yyyy}...";
 
             if (SelectedReportType == "Day Book (Consolidated)")
             {
@@ -102,7 +87,7 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                 decimal debits = 0m, credits = 0m;
 
                 var grouped = await _reportService.GetDayBookConsolidatedAsync(
-                    _company.CompanyId, StartDate, EndDate, SelectedVehicle?.VehicleId);
+                    _company.CompanyId, StartDate, EndDate);
 
                 foreach (var e in grouped)
                 {
@@ -121,51 +106,6 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                         Narration = "Summary",
                         Amount = amount,
                         DrCr = drCr,
-                        RunningBalance = running
-                    });
-                }
-
-                TotalDebits = debits;
-                TotalCredits = credits;
-            }
-            else if (SelectedReportType == "Vehicle Ledger")
-            {
-                if (SelectedVehicle == null)
-                {
-                    StatusMessage = "Please select a vehicle";
-                    return;
-                }
-
-                var ledger = await _reportService.GetVehicleLedgerAsync(SelectedVehicle.VehicleId, StartDate, EndDate);
-
-                decimal running = ledger.OpeningBalance;
-                decimal debits = 0m, credits = 0m;
-
-                // Opening balance row (no voucher number)
-                ReportRows.Add(new ReportRow
-                {
-                    Date = StartDate,
-                    VoucherNumber = 0,
-                    VehicleNumber = SelectedVehicle.VehicleNumber,
-                    Narration = "Opening Balance",
-                    Amount = Math.Abs(ledger.OpeningBalance),
-                    DrCr = ledger.OpeningBalance >= 0 ? "D" : "C",
-                    RunningBalance = running
-                });
-
-                foreach (var v in ledger.Entries)
-                {
-                    if (v.DrCr == "D") { running += v.Amount; debits += v.Amount; }
-                    else { running -= v.Amount; credits += v.Amount; }
-
-                    ReportRows.Add(new ReportRow
-                    {
-                        Date = v.Date,
-                        VoucherNumber = v.VoucherNumber,
-                        VehicleNumber = SelectedVehicle.VehicleNumber,
-                        Narration = v.Narration ?? string.Empty,
-                        Amount = v.Amount,
-                        DrCr = v.DrCr,
                         RunningBalance = running
                     });
                 }
@@ -200,8 +140,9 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                 var result = await _reportService.GetDayBookAsync(
                     _company.CompanyId,
                     StartDate,
-                    EndDate,
-                    SelectedVehicle?.VehicleId);
+                    EndDate);
+
+                StatusMessage = $"📊 Retrieved {result.Count()} vouchers from database...";
 
                 decimal running = 0m;
                 decimal debits = 0m, credits = 0m;
@@ -228,7 +169,7 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                 TotalCredits = credits;
             }
 
-            StatusMessage = $"Generated {ReportRows.Count} rows";
+            StatusMessage = $"✅ Generated {ReportRows.Count} rows - Dr: ₹{TotalDebits:N2}, Cr: ₹{TotalCredits:N2}";
         }, "Generating report...");
     }
 
@@ -384,16 +325,7 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
             _company = parameters as Company;
         }
 
-        await ExecuteAsync(async () =>
-        {
-            Vehicles.Clear();
-            if (_company != null)
-            {
-                var list = await _dataService.Vehicles.GetActiveByCompanyIdAsync(_company.CompanyId);
-                foreach (var v in list) Vehicles.Add(v);
-            }
-            StatusMessage = "Reports ready";
-        }, "Loading report data...");
+        StatusMessage = "Reports ready";
     }
 
     public async Task OnNavigatedFromAsync()

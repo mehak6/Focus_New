@@ -82,14 +82,12 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="280"/>
-                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="30"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="150"/>
-                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="30"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="150"/>
-                        <ColumnDefinition Width="20"/>
-                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
@@ -101,10 +99,6 @@
 
                     <TextBlock Grid.Column="6" Text="To Date:" Style="{StaticResource LabelStyle}"/>
                     <DatePicker Grid.Column="7" SelectedDate="{Binding EndDate}" Height="32"/>
-
-                    <TextBlock Grid.Column="9" Text="Vehicle:" Style="{StaticResource LabelStyle}"/>
-                    <ComboBox Grid.Column="10" ItemsSource="{Binding Vehicles}" SelectedItem="{Binding SelectedVehicle}"
-                              DisplayMemberPath="DisplayName" Height="32"/>
                 </Grid>
                 
                 <!-- Action Buttons Row -->

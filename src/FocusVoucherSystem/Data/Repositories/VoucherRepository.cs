@@ -22,10 +22,10 @@ public class VoucherRepository : IVoucherRepository
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                   c.CompanyId, c.Name, c.FinancialYearStart, c.FinancialYearEnd,
-                   c.LastVoucherNumber, c.IsActive, c.CreatedDate, c.ModifiedDate,
-                   ve.VehicleId, ve.CompanyId, ve.VehicleNumber, ve.Description, 
-                   ve.IsActive, ve.CreatedDate, ve.ModifiedDate
+                   c.CompanyId AS CompId, c.Name, c.FinancialYearStart, c.FinancialYearEnd,
+                   c.LastVoucherNumber, c.IsActive AS CompIsActive, c.CreatedDate AS CompCreatedDate, c.ModifiedDate AS CompModifiedDate,
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
             FROM Vouchers v
             LEFT JOIN Companies c ON v.CompanyId = c.CompanyId
             LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
@@ -39,7 +39,7 @@ public class VoucherRepository : IVoucherRepository
                 return voucher;
             },
             new { Id = id },
-            splitOn: "CompanyId,VehicleId");
+            splitOn: "CompId,VehId");
             
         return vouchers.FirstOrDefault();
     }
@@ -50,10 +50,10 @@ public class VoucherRepository : IVoucherRepository
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                   c.CompanyId, c.Name, c.FinancialYearStart, c.FinancialYearEnd,
-                   c.LastVoucherNumber, c.IsActive, c.CreatedDate, c.ModifiedDate,
-                   ve.VehicleId, ve.CompanyId, ve.VehicleNumber, ve.Description, 
-                   ve.IsActive, ve.CreatedDate, ve.ModifiedDate
+                   c.CompanyId AS CompId, c.Name, c.FinancialYearStart, c.FinancialYearEnd,
+                   c.LastVoucherNumber, c.IsActive AS CompIsActive, c.CreatedDate AS CompCreatedDate, c.ModifiedDate AS CompModifiedDate,
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
             FROM Vouchers v
             LEFT JOIN Companies c ON v.CompanyId = c.CompanyId
             LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
@@ -66,7 +66,7 @@ public class VoucherRepository : IVoucherRepository
                 voucher.Vehicle = vehicle;
                 return voucher;
             },
-            splitOn: "CompanyId,VehicleId");
+            splitOn: "CompId,VehId");
             
         return vouchers;
     }
@@ -277,8 +277,8 @@ public class VoucherRepository : IVoucherRepository
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                   ve.VehicleId, ve.CompanyId, ve.VehicleNumber, ve.Description, 
-                   ve.IsActive, ve.CreatedDate, ve.ModifiedDate
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
             FROM Vouchers v
             LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
             WHERE v.CompanyId = @CompanyId 
@@ -293,7 +293,7 @@ public class VoucherRepository : IVoucherRepository
                 return voucher;
             },
             new { CompanyId = companyId, StartDate = startDate, EndDate = endDate },
-            splitOn: "VehicleId");
+            splitOn: "VehId");
             
         return vouchers;
     }
@@ -304,8 +304,8 @@ public class VoucherRepository : IVoucherRepository
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                   ve.VehicleId, ve.CompanyId, ve.VehicleNumber, ve.Description, 
-                   ve.IsActive, ve.CreatedDate, ve.ModifiedDate
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
             FROM Vouchers v
             LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
             WHERE v.VehicleId = @VehicleId
@@ -318,7 +318,7 @@ public class VoucherRepository : IVoucherRepository
                 return voucher;
             },
             new { VehicleId = vehicleId },
-            splitOn: "VehicleId");
+            splitOn: "VehId");
             
         return vouchers;
     }
@@ -330,8 +330,8 @@ public class VoucherRepository : IVoucherRepository
         string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                   ve.VehicleId, ve.CompanyId, ve.VehicleNumber, ve.Description, 
-                   ve.IsActive, ve.CreatedDate, ve.ModifiedDate
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
             FROM Vouchers v
             LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
             WHERE v.VehicleId = @VehicleId";
@@ -363,7 +363,7 @@ public class VoucherRepository : IVoucherRepository
                 return voucher;
             },
             parameters,
-            splitOn: "VehicleId");
+            splitOn: "VehId");
             
         return vouchers;
     }
@@ -374,8 +374,8 @@ public class VoucherRepository : IVoucherRepository
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                   ve.VehicleId, ve.CompanyId, ve.VehicleNumber, ve.Description, 
-                   ve.IsActive, ve.CreatedDate, ve.ModifiedDate
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
             FROM Vouchers v
             LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
             WHERE v.CompanyId = @CompanyId AND v.VoucherNumber = @VoucherNumber";
@@ -387,7 +387,7 @@ public class VoucherRepository : IVoucherRepository
                 return voucher;
             },
             new { CompanyId = companyId, VoucherNumber = voucherNumber },
-            splitOn: "VehicleId");
+            splitOn: "VehId");
             
         return vouchers.FirstOrDefault();
     }
@@ -398,8 +398,8 @@ public class VoucherRepository : IVoucherRepository
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                   ve.VehicleId, ve.CompanyId, ve.VehicleNumber, ve.Description, 
-                   ve.IsActive, ve.CreatedDate, ve.ModifiedDate
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
             FROM Vouchers v
             LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
             WHERE v.CompanyId = @CompanyId 
@@ -413,7 +413,7 @@ public class VoucherRepository : IVoucherRepository
                 return voucher;
             },
             new { CompanyId = companyId, Date = date },
-            splitOn: "VehicleId");
+            splitOn: "VehId");
             
         return vouchers;
     }
