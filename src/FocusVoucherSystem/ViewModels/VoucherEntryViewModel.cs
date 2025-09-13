@@ -161,38 +161,54 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     }
 
     /// <summary>
-    /// Validates the current voucher data
+    /// Validates the current voucher data with enhanced error handling
     /// </summary>
-    private bool ValidateCurrentVoucher()
+    private Task<bool> ValidateCurrentVoucherAsync()
     {
-        // Set CompanyId before validation
+        // Set basic required fields
         if (CurrentCompany != null)
-        {
             CurrentVoucher.CompanyId = CurrentCompany.CompanyId;
-        }
-
-        // Set VehicleId before validation
-        if (SelectedVehicle != null)
-        {
-            CurrentVoucher.VehicleId = SelectedVehicle.VehicleId;
-        }
-
-        var errors = CurrentVoucher.Validate();
-
-        if (SelectedVehicle == null)
-            errors.Add("Please select a vehicle");
         
-        if (CurrentCompany == null)
-            errors.Add("Company must be selected");
+        if (SelectedVehicle != null)
+            CurrentVoucher.VehicleId = SelectedVehicle.VehicleId;
 
-        if (errors.Any())
+        // Enhanced validation with better error messages
+        if (CurrentCompany == null)
         {
-            StatusMessage = $"Validation errors: {string.Join(", ", errors)}";
-            return false;
+            StatusMessage = "❌ Company must be selected";
+            return Task.FromResult(false);
         }
 
-        return true;
+        // Clean validation - vehicle must be selected from existing ones
+        if (SelectedVehicle == null)
+        {
+            if (!string.IsNullOrWhiteSpace(VehicleSearchText))
+            {
+                StatusMessage = $"❌ Vehicle '{VehicleSearchText}' not found. Go to VEHICLE MANAGEMENT (F1) to create it first.";
+            }
+            else
+            {
+                StatusMessage = "❌ Please select a vehicle from the dropdown or search for an existing one.";
+            }
+            return Task.FromResult(false);
+        }
+
+        if (CurrentVoucher.Amount <= 0)
+        {
+            StatusMessage = "❌ Amount must be greater than 0";
+            return Task.FromResult(false);
+        }
+
+        if (string.IsNullOrWhiteSpace(CurrentVoucher.DrCr) || (CurrentVoucher.DrCr != "D" && CurrentVoucher.DrCr != "C"))
+        {
+            StatusMessage = "❌ Please select Dr/Cr";
+            return Task.FromResult(false);
+        }
+
+        StatusMessage = $"✅ Saving voucher - Amount: ₹{CurrentVoucher.Amount:N2}, Vehicle: {SelectedVehicle.VehicleNumber}";
+        return Task.FromResult(true);
     }
+    
 
     #region Commands
 
@@ -212,13 +228,12 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     [RelayCommand]
     private async Task SaveVoucher()
     {
-        if (!ValidateCurrentVoucher())
+        if (!await ValidateCurrentVoucherAsync())
             return;
 
         await ExecuteAsync(async () =>
         {
-            // IDs are already set in ValidateCurrentVoucher
-
+            
             Voucher savedVoucher;
 
             if (CurrentVoucher.VoucherId == 0)
@@ -441,8 +456,30 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     partial void OnVehicleSearchTextChanged(string value)
     {
         UpdateVehicleFilter();
-        ShowVehicleSuggestions = !string.IsNullOrWhiteSpace(VehicleSearchText) && FilteredVehicles.Any();
+        ShowVehicleSuggestions = !string.IsNullOrWhiteSpace(VehicleSearchText);
+        
+        // Check if entered text matches an existing vehicle
+        var exactMatch = Vehicles.FirstOrDefault(v => 
+            string.Equals(v.VehicleNumber, VehicleSearchText?.Trim(), StringComparison.OrdinalIgnoreCase));
+        
+        if (exactMatch != null)
+        {
+            SelectedVehicle = exactMatch;
+            StatusMessage = $"Selected existing vehicle: {exactMatch.DisplayName}";
+        }
+        else if (!string.IsNullOrWhiteSpace(VehicleSearchText))
+        {
+            // Clear selected vehicle if text doesn't match any existing vehicle
+            SelectedVehicle = null;
+            StatusMessage = $"Type '{VehicleSearchText?.Trim()}' and press Enter to create new vehicle";
+        }
+        else
+        {
+            SelectedVehicle = null;
+            StatusMessage = "Ready to enter vouchers";
+        }
     }
+
 
     private void UpdateVehicleFilter()
     {
@@ -464,6 +501,21 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
 
         foreach (var v in hit)
             FilteredVehicles.Add(v);
+
+        // If no exact matches and user has typed something, show option to create new vehicle
+        if (!FilteredVehicles.Any() && !string.IsNullOrWhiteSpace(term))
+        {
+            // Add a placeholder vehicle to represent "Create New Vehicle" option
+            var newVehiclePlaceholder = new Vehicle
+            {
+                VehicleId = -1, // Use negative ID to indicate this is a placeholder
+                VehicleNumber = $"+ Create '{term}'",
+                Description = "Press Enter to create this new vehicle",
+                CompanyId = CurrentCompany?.CompanyId ?? 0,
+                IsActive = true
+            };
+            FilteredVehicles.Add(newVehiclePlaceholder);
+        }
     }
 
     /// <summary>
@@ -529,6 +581,50 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
         VehicleSearchText = vehicle.DisplayName;
         ShowVehicleSuggestions = false;
     }
+
+    /// <summary>
+    /// Handles Enter key press in vehicle search box - creates new vehicle if needed
+    /// </summary>
+    [RelayCommand]
+    private void HandleVehicleSearchEnter()
+    {
+        if (string.IsNullOrWhiteSpace(VehicleSearchText) || CurrentCompany == null)
+            return;
+
+        var vehicleNumber = VehicleSearchText.Trim();
+        
+        // Check if there's an exact match first
+        var exactMatch = Vehicles.FirstOrDefault(v => 
+            string.Equals(v.VehicleNumber, vehicleNumber, StringComparison.OrdinalIgnoreCase));
+        
+        if (exactMatch != null)
+        {
+            SelectVehicle(exactMatch);
+            return;
+        }
+
+        // Check suggestions
+        if (FilteredVehicles.Any() && !FilteredVehicles.First().VehicleNumber.StartsWith("+ Create"))
+        {
+            SelectVehicle(FilteredVehicles.First());
+            return;
+        }
+
+        // Vehicle not found - guide user to Vehicle Management
+        StatusMessage = $"❌ Vehicle '{vehicleNumber}' not found. Go to VEHICLE MANAGEMENT (F1) to create it first, then return here.";
+        
+        // Show suggestion in filtered vehicles for user guidance
+        var suggestionVehicle = new Vehicle 
+        { 
+            VehicleNumber = $"➡️ Create '{vehicleNumber}' in Vehicle Management", 
+            Description = "Press F1 to go to Vehicle Management" 
+        };
+        
+        FilteredVehicles.Clear();
+        FilteredVehicles.Add(suggestionVehicle);
+        ShowVehicleSuggestions = true;
+    }
+
 
     #endregion
 

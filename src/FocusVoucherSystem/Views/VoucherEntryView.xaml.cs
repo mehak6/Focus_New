@@ -103,18 +103,10 @@ public partial class VoucherEntryView : UserControl
 
         if (e.Key == Key.Enter)
         {
-            // Prefer the currently highlighted suggestion if available
-            if (VehicleSuggestionsList is ListBox lb && lb.SelectedItem is Models.Vehicle selected)
+            // Use the new HandleVehicleSearchEnter command that can create new vehicles
+            if (vm.HandleVehicleSearchEnterCommand.CanExecute(null))
             {
-                vm.SelectVehicleCommand.Execute(selected);
-                e.Handled = true;
-                return;
-            }
-
-            var first = vm.FilteredVehicles.FirstOrDefault();
-            if (first != null)
-            {
-                vm.SelectVehicleCommand.Execute(first);
+                vm.HandleVehicleSearchEnterCommand.Execute(null);
                 e.Handled = true;
             }
         }

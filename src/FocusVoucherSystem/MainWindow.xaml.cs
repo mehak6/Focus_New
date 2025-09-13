@@ -33,9 +33,9 @@ public partial class MainWindow : Window
 
         // Set the current company
         _viewModel.CurrentCompany = selectedCompany;
-        _viewModel.Title = $"Focus Voucher System - {selectedCompany.Name}";
+        _viewModel.Title = $"Focus Voucher System - {selectedCompany?.Name}";
 
-        System.Diagnostics.Debug.WriteLine($"MainWindow constructor: Set company to {selectedCompany.Name}");
+        System.Diagnostics.Debug.WriteLine($"MainWindow constructor: Set company to {selectedCompany?.Name}");
 
         // Set up navigation host
         _navigationService.SetNavigationHost(ContentHost);

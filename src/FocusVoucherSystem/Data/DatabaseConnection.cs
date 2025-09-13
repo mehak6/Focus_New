@@ -13,7 +13,7 @@ public class DatabaseConnection : IDisposable
     private readonly string _connectionString;
     private SqliteConnection? _connection;
 
-    public DatabaseConnection(string databasePath = null)
+    public DatabaseConnection(string? databasePath = null)
     {
         // Default to same folder as exe
         if (string.IsNullOrEmpty(databasePath))

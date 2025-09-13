@@ -173,13 +173,76 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
     }
 
     /// <summary>
-    /// Creates a new vehicle (clears the form)
+    /// ENHANCED: Creates a new vehicle from typed vehicle number or clears form
     /// </summary>
     [RelayCommand]
-    private void NewVehicle()
+    private async Task NewVehicle()
     {
-        InitializeNewVehicle();
-        StatusMessage = "Ready for new vehicle entry";
+        // Check if user has typed a vehicle number
+        if (!string.IsNullOrWhiteSpace(CurrentVehicle.VehicleNumber))
+        {
+            var vehicleNumber = CurrentVehicle.VehicleNumber.Trim();
+            
+            // Check if vehicle already exists
+            var existingVehicle = _allVehicles.FirstOrDefault(v => 
+                string.Equals(v.VehicleNumber, vehicleNumber, StringComparison.OrdinalIgnoreCase));
+            
+            if (existingVehicle != null)
+            {
+                StatusMessage = $"❌ Vehicle '{vehicleNumber}' already exists! Select it from the grid to edit.";
+                return;
+            }
+            
+            // Create new vehicle with the typed number
+            try
+            {
+                StatusMessage = $"🚀 Creating new vehicle '{vehicleNumber}'...";
+                
+                var newVehicle = new Vehicle
+                {
+                    VehicleNumber = vehicleNumber,
+                    Description = string.IsNullOrWhiteSpace(CurrentVehicle.Description) 
+                        ? $"Vehicle {vehicleNumber}" 
+                        : CurrentVehicle.Description,
+                    CompanyId = CurrentCompany?.CompanyId ?? 0,
+                    IsActive = true
+                };
+                
+                // Save to database
+                var savedVehicle = await _dataService.Vehicles.AddAsync(newVehicle);
+                
+                // Create display item
+                var newDisplayItem = new VehicleDisplayItem(savedVehicle);
+                var balance = await _dataService.Vehicles.GetVehicleBalanceAsync(savedVehicle.VehicleId);
+                var lastTransactionDate = await _dataService.Vehicles.GetLastTransactionDateAsync(savedVehicle.VehicleId);
+                
+                newDisplayItem.UpdateBalance(balance);
+                newDisplayItem.UpdateLastTransactionDate(lastTransactionDate);
+                
+                // Add to collections
+                _allVehicles.Add(newDisplayItem);
+                RefreshVehicleList();
+                
+                // Update counters
+                TotalVehicles++;
+                ActiveVehicles++;
+                
+                StatusMessage = $"✅ Vehicle '{vehicleNumber}' created successfully! (ID: {savedVehicle.VehicleId})";
+                
+                // Clear form for next entry
+                InitializeNewVehicle();
+            }
+            catch (Exception ex)
+            {
+                StatusMessage = $"❌ Failed to create vehicle '{vehicleNumber}': {ex.Message}";
+            }
+        }
+        else
+        {
+            // No vehicle number typed, just clear the form
+            InitializeNewVehicle();
+            StatusMessage = "📝 Enter vehicle number and click NEW to create, or fill form and click SAVE";
+        }
     }
 
     /// <summary>
