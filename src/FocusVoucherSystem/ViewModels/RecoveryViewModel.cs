@@ -151,7 +151,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
     /// Exports the recovery results to CSV
     /// </summary>
     [RelayCommand]
-    private async Task Export()
+    private void Export()
     {
         if (!RecoveryItems.Any())
         {
@@ -200,19 +200,20 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
 
     #region INavigationAware Implementation
 
-    public async Task OnNavigatedToAsync(object? parameters)
+    public Task OnNavigatedToAsync(object? parameters)
     {
         if (parameters is Company company)
         {
             _currentCompany = company;
             StatusMessage = $"Recovery Statement for {company.Name} - Enter days and click Generate";
         }
+        return Task.CompletedTask;
     }
 
-    public async Task OnNavigatedFromAsync()
+    public Task OnNavigatedFromAsync()
     {
         // Cleanup if needed
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
     #endregion

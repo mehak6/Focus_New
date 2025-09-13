@@ -87,7 +87,7 @@ public partial class CompanySelectionWindow : Window
         }
     }
 
-    private async void SelectCompanyButton_Click(object sender, RoutedEventArgs e)
+    private void SelectCompanyButton_Click(object sender, RoutedEventArgs e)
     {
         if (CompaniesListBox.SelectedItem is Company selectedCompany)
         {

@@ -5,6 +5,7 @@ using FocusVoucherSystem.Services;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
+using FocusVoucherSystem.Data.Repositories;
 
 namespace FocusVoucherSystem.ViewModels;
 
@@ -18,7 +19,16 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
     private string _statusMessage = string.Empty;
 
     [ObservableProperty]
-    private ObservableCollection<string> _reportTypes = new(new[] { "Day Book (Full Entries)", "Day Book (Consolidated)", "Trial Balance" });
+    private ObservableCollection<string> _reportTypes = new(new[] {
+        "Day Book (Full Entries)",
+        "Day Book (Consolidated)",
+        "Trial Balance",
+        "Vehicle Ledger",
+        "Ledger (Full Entries)",
+        "Interest Calculation",
+        "Recovery Statement",
+        "Date Wise Recovery List"
+    });
 
     [ObservableProperty]
     private string _selectedReportType = "Day Book (Full Entries)";
@@ -60,11 +70,60 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
     partial void OnTotalCreditsChanged(decimal value) => UpdateNetTotals();
     
 
+    [ObservableProperty]
+    private VehicleDisplayItem? _selectedVehicleForLedger;
+
+    [ObservableProperty]
+    private ObservableCollection<VehicleDisplayItem> _vehicles = new();
+
     private void UpdateNetTotals()
     {
         var net = TotalDebits - TotalCredits;
         NetDrCr = net >= 0 ? "D" : "C";
         NetAmount = Math.Abs(net);
+    }
+
+    /// <summary>
+    /// Loads vehicles for Vehicle Ledger report selection
+    /// </summary>
+    private async Task LoadVehiclesAsync()
+    {
+        if (_company == null) return;
+
+        await ExecuteAsync(async () =>
+        {
+            Vehicles.Clear();
+            var vehicles = await _dataService.Vehicles.GetByCompanyIdAsync(_company.CompanyId);
+            var vehicleDisplayItems = new List<VehicleDisplayItem>();
+
+            foreach (var v in vehicles.OrderBy(v => v.VehicleNumber))
+            {
+                var displayItem = new VehicleDisplayItem(v);
+                var balance = await _dataService.Vehicles.GetVehicleBalanceAsync(v.VehicleId);
+                displayItem.UpdateBalance(balance);
+                displayItem.UpdateLastTransactionDate(
+                    await _dataService.Vehicles.GetLastTransactionDateAsync(v.VehicleId));
+                vehicleDisplayItems.Add(displayItem);
+            }
+
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                foreach (var item in vehicleDisplayItems)
+                {
+                    Vehicles.Add(item);
+                }
+            });
+
+        }, "Loading vehicles...");
+    }
+
+    partial void OnSelectedVehicleForLedgerChanged(VehicleDisplayItem? value)
+    {
+        if (value != null && SelectedReportType == "Vehicle Ledger")
+        {
+            // Auto-regenerate report when vehicle is selected
+            _ = GenerateReport();
+        }
     }
 
     [RelayCommand]
@@ -349,7 +408,7 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
         }
     }
 
-    public async Task OnNavigatedToAsync(object? parameters)
+    public Task OnNavigatedToAsync(object? parameters)
     {
         _company = parameters as Company;
         if (_company == null && parameters is not null)
@@ -358,11 +417,12 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
         }
 
         StatusMessage = "Reports ready";
+        return Task.CompletedTask;
     }
 
-    public async Task OnNavigatedFromAsync()
+    public Task OnNavigatedFromAsync()
     {
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }
 

@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using FocusVoucherSystem.ViewModels;
 
 namespace FocusVoucherSystem.Services;
 
@@ -52,7 +53,7 @@ public class ExportService
         return filePath;
     }
 
-    public async Task<string> ExportDayBookPdfAsync(IEnumerable<ViewModels.ReportRow> rows, string companyName)
+    public Task<string> ExportDayBookPdfAsync(IEnumerable<ViewModels.ReportRow> rows, string companyName)
     {
         // PDF export disabled to reduce application size
         throw new NotSupportedException("PDF export has been disabled to reduce application size. Use CSV export instead.");
@@ -91,13 +92,13 @@ public class ExportService
         return filePath;
     }
 
-    public async Task<string> ExportPdfAsync(string reportKey, IEnumerable<ViewModels.ReportRow> rows, string companyName)
+    public Task<string> ExportPdfAsync(string reportKey, IEnumerable<ViewModels.ReportRow> rows, string companyName)
     {
         // PDF export disabled to reduce application size
         throw new NotSupportedException("PDF export has been disabled to reduce application size. Use CSV export instead.");
     }
 
-    public async Task<string> ExportExcelAsync(string reportKey, IEnumerable<ViewModels.ReportRow> rows)
+    public Task<string> ExportExcelAsync(string reportKey, IEnumerable<ViewModels.ReportRow> rows)
     {
         // Excel export disabled to reduce application size
         throw new NotSupportedException("Excel export has been disabled to reduce application size. Use CSV export instead.");
