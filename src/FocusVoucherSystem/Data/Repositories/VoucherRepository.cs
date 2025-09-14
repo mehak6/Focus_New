@@ -331,22 +331,22 @@ public class VoucherRepository : IVoucherRepository
             
             return vouchers.Select(v => new Voucher
             {
-                VoucherId = v.VoucherId,
-                CompanyId = v.CompanyId,
-                VoucherNumber = v.VoucherNumber,
-                Date = v.Date,
-                VehicleId = v.VehicleId,
-                Amount = v.Amount,
-                DrCr = v.DrCr,
-                Narration = v.Narration ?? string.Empty,
-                CreatedDate = v.CreatedDate,
-                ModifiedDate = v.ModifiedDate,
-                RunningBalance = (decimal)(v.RunningBalance ?? 0),
+                VoucherId = SafeToInt32(v.VoucherId),
+                CompanyId = SafeToInt32(v.CompanyId),
+                VoucherNumber = SafeToInt32(v.VoucherNumber),
+                Date = SafeToDateTime(v.Date),
+                VehicleId = SafeToInt32(v.VehicleId),
+                Amount = SafeToDecimal(v.Amount),
+                DrCr = v.DrCr?.ToString() ?? string.Empty,
+                Narration = v.Narration?.ToString() ?? string.Empty,
+                CreatedDate = SafeToDateTime(v.CreatedDate),
+                ModifiedDate = SafeToDateTime(v.ModifiedDate),
+                RunningBalance = SafeToDecimal(v.RunningBalance ?? 0),
                 Vehicle = new Vehicle
                 {
-                    VehicleId = v.VehicleId,
-                    VehicleNumber = v.VehicleNumber ?? string.Empty,
-                    Description = v.Description ?? string.Empty
+                    VehicleId = SafeToInt32(v.VehicleId),
+                    VehicleNumber = v.VehicleNumber?.ToString() ?? string.Empty,
+                    Description = v.Description?.ToString() ?? string.Empty
                 }
             }).ToList();
         }
@@ -402,22 +402,22 @@ public class VoucherRepository : IVoucherRepository
             
             var voucherList = vouchers.Select(v => new Voucher
             {
-                VoucherId = v.VoucherId,
-                CompanyId = v.CompanyId,
-                VoucherNumber = v.VoucherNumber,
-                Date = v.Date,
-                VehicleId = v.VehicleId,
-                Amount = v.Amount,
-                DrCr = v.DrCr,
-                Narration = v.Narration ?? string.Empty,
-                CreatedDate = v.CreatedDate,
-                ModifiedDate = v.ModifiedDate,
-                RunningBalance = (decimal)(v.RunningBalance ?? 0),
+                VoucherId = SafeToInt32(v.VoucherId),
+                CompanyId = SafeToInt32(v.CompanyId),
+                VoucherNumber = SafeToInt32(v.VoucherNumber),
+                Date = SafeToDateTime(v.Date),
+                VehicleId = SafeToInt32(v.VehicleId),
+                Amount = SafeToDecimal(v.Amount),
+                DrCr = v.DrCr?.ToString() ?? string.Empty,
+                Narration = v.Narration?.ToString() ?? string.Empty,
+                CreatedDate = SafeToDateTime(v.CreatedDate),
+                ModifiedDate = SafeToDateTime(v.ModifiedDate),
+                RunningBalance = SafeToDecimal(v.RunningBalance ?? 0),
                 Vehicle = new Vehicle
                 {
-                    VehicleId = v.VehicleId,
-                    VehicleNumber = v.VehicleNumber ?? string.Empty,
-                    Description = v.Description ?? string.Empty
+                    VehicleId = SafeToInt32(v.VehicleId),
+                    VehicleNumber = v.VehicleNumber?.ToString() ?? string.Empty,
+                    Description = v.Description?.ToString() ?? string.Empty
                 }
             }).ToList();
             
@@ -585,5 +585,43 @@ public class VoucherRepository : IVoucherRepository
             new { CompanyId = companyId, Date = date });
             
         return result;
+    }
+
+    /// <summary>
+    /// Safe type conversion helpers for SQLite dynamic results
+    /// </summary>
+    private static int SafeToInt32(object value)
+    {
+        return value switch
+        {
+            int intValue => intValue,
+            long longValue => (int)longValue,
+            string strValue when int.TryParse(strValue, out var parsed) => parsed,
+            _ => 0
+        };
+    }
+
+    private static decimal SafeToDecimal(object value)
+    {
+        return value switch
+        {
+            decimal decValue => decValue,
+            double dblValue => (decimal)dblValue,
+            float floatValue => (decimal)floatValue,
+            long longValue => longValue,
+            int intValue => intValue,
+            string strValue when decimal.TryParse(strValue, out var parsed) => parsed,
+            _ => 0m
+        };
+    }
+
+    private static DateTime SafeToDateTime(object value)
+    {
+        return value switch
+        {
+            DateTime dateTime => dateTime,
+            string strValue when DateTime.TryParse(strValue, out var parsed) => parsed,
+            _ => DateTime.MinValue
+        };
     }
 }
