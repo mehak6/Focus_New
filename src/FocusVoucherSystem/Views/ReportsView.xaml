@@ -273,13 +273,41 @@
                         </DataGridTextColumn.CellStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="Balance" Binding="{Binding RunningBalance, Converter={StaticResource INRCurrencyConverter}}" Width="160" IsReadOnly="True">
+                    <DataGridTextColumn Header="Balance" Binding="{Binding RunningBalance, Converter={StaticResource INRCurrencyConverter}}" Width="140" IsReadOnly="True">
                         <DataGridTextColumn.ElementStyle>
                             <Style TargetType="TextBlock">
                                 <Setter Property="TextAlignment" Value="Right"/>
                                 <Setter Property="FontFamily" Value="Consolas"/>
                                 <Setter Property="FontSize" Value="12"/>
                                 <Setter Property="FontWeight" Value="Bold"/>
+                                <Setter Property="Padding" Value="4,8"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="Debit Bal." Binding="{Binding DebitBalance, Converter={StaticResource INRCurrencyConverter}}" Width="140" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextAlignment" Value="Right"/>
+                                <Setter Property="FontFamily" Value="Consolas"/>
+                                <Setter Property="FontSize" Value="12"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="Foreground" Value="#22543d"/>
+                                <Setter Property="Padding" Value="4,8"/>
+                                <Setter Property="VerticalAlignment" Value="Center"/>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+
+                    <DataGridTextColumn Header="Credit Bal." Binding="{Binding CreditBalance, Converter={StaticResource INRCurrencyConverter}}" Width="140" IsReadOnly="True">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextAlignment" Value="Right"/>
+                                <Setter Property="FontFamily" Value="Consolas"/>
+                                <Setter Property="FontSize" Value="12"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="Foreground" Value="#742a2a"/>
                                 <Setter Property="Padding" Value="4,8"/>
                                 <Setter Property="VerticalAlignment" Value="Center"/>
                             </Style>

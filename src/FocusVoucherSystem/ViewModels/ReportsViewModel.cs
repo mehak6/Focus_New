@@ -23,11 +23,7 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
         "Day Book (Full Entries)",
         "Day Book (Consolidated)",
         "Trial Balance",
-        "Vehicle Ledger",
-        "Ledger (Full Entries)",
-        "Interest Calculation",
-        "Recovery Statement",
-        "Date Wise Recovery List"
+        "Ledger (Full Entries)"
     });
 
     [ObservableProperty]
@@ -70,11 +66,6 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
     partial void OnTotalCreditsChanged(decimal value) => UpdateNetTotals();
     
 
-    [ObservableProperty]
-    private VehicleDisplayItem? _selectedVehicleForLedger;
-
-    [ObservableProperty]
-    private ObservableCollection<VehicleDisplayItem> _vehicles = new();
 
     private void UpdateNetTotals()
     {
@@ -83,48 +74,7 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
         NetAmount = Math.Abs(net);
     }
 
-    /// <summary>
-    /// Loads vehicles for Vehicle Ledger report selection
-    /// </summary>
-    private async Task LoadVehiclesAsync()
-    {
-        if (_company == null) return;
 
-        await ExecuteAsync(async () =>
-        {
-            Vehicles.Clear();
-            var vehicles = await _dataService.Vehicles.GetByCompanyIdAsync(_company.CompanyId);
-            var vehicleDisplayItems = new List<VehicleDisplayItem>();
-
-            foreach (var v in vehicles.OrderBy(v => v.VehicleNumber))
-            {
-                var displayItem = new VehicleDisplayItem(v);
-                var balance = await _dataService.Vehicles.GetVehicleBalanceAsync(v.VehicleId);
-                displayItem.UpdateBalance(balance);
-                displayItem.UpdateLastTransactionDate(
-                    await _dataService.Vehicles.GetLastTransactionDateAsync(v.VehicleId));
-                vehicleDisplayItems.Add(displayItem);
-            }
-
-            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
-            {
-                foreach (var item in vehicleDisplayItems)
-                {
-                    Vehicles.Add(item);
-                }
-            });
-
-        }, "Loading vehicles...");
-    }
-
-    partial void OnSelectedVehicleForLedgerChanged(VehicleDisplayItem? value)
-    {
-        if (value != null && SelectedReportType == "Vehicle Ledger")
-        {
-            // Auto-regenerate report when vehicle is selected
-            _ = GenerateReport();
-        }
-    }
 
     [RelayCommand]
     private async Task GenerateReport()
@@ -166,7 +116,9 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                         Narration = "Summary",
                         Amount = amount,
                         DrCr = drCr,
-                        RunningBalance = running
+                        RunningBalance = running,
+                        DebitBalance = 0,
+                        CreditBalance = 0
                     });
                 }
 
@@ -200,7 +152,9 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                         Narration = "Balance",
                         Amount = t.Amount,
                         DrCr = t.DrCr,
-                        RunningBalance = 0m
+                        RunningBalance = 0m,
+                        DebitBalance = 0,
+                        CreditBalance = 0
                     });
                 }
 
@@ -227,13 +181,24 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
 
                 decimal running = 0m;
                 decimal debits = 0m, credits = 0m;
+                decimal runningDebits = 0m, runningCredits = 0m;
                 var tempRows = new List<ReportRow>();
 
                 foreach (var v in result.OrderBy(v => v.Date).ThenBy(v => v.VoucherNumber))
                 {
                     var amount = v.Amount;
-                    if (v.DrCr == "D") { running += amount; debits += amount; }
-                    else { running -= amount; credits += amount; }
+                    if (v.DrCr == "D") 
+                    { 
+                        running += amount; 
+                        debits += amount;
+                        runningDebits += amount;
+                    }
+                    else 
+                    { 
+                        running -= amount; 
+                        credits += amount;
+                        runningCredits += amount;
+                    }
 
                     tempRows.Add(new ReportRow
                     {
@@ -243,7 +208,9 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                         Narration = v.Narration ?? string.Empty,
                         Amount = v.Amount,
                         DrCr = v.DrCr,
-                        RunningBalance = running
+                        RunningBalance = running,
+                        DebitBalance = runningDebits,
+                        CreditBalance = runningCredits
                     });
                 }
 
@@ -435,4 +402,6 @@ public class ReportRow
     public decimal Amount { get; set; }
     public string DrCr { get; set; } = "D";
     public decimal RunningBalance { get; set; }
+    public decimal DebitBalance { get; set; }
+    public decimal CreditBalance { get; set; }
 }
