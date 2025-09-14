@@ -194,8 +194,28 @@
                     <DatePicker Grid.Column="4" SelectedDate="{Binding CurrentVoucher.Date}" Height="30" VerticalContentAlignment="Center"/>
                     
                     <TextBlock Grid.Column="6" Text="Vehicle:" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Grid.Column="7" Text="{Binding CurrentVoucher.Vehicle.DisplayName, Mode=OneWay}" 
-                             Style="{StaticResource InputStyle}" IsReadOnly="True" Background="#f1f1f1"/>
+                    <ComboBox Grid.Column="7" 
+                              ItemsSource="{Binding AvailableVehicles}"
+                              SelectedItem="{Binding SelectedVehicleForEdit, UpdateSourceTrigger=PropertyChanged}"
+                              Height="30" VerticalContentAlignment="Center"
+                              ToolTip="Select vehicle for this voucher">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding VehicleNumber}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Description}" FontSize="10" Foreground="Gray"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding FormattedBalance}" 
+                                               FontFamily="Consolas" FontSize="10" Margin="10,0,0,0"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
                 </Grid>
                 
                 <!-- Second Row of Inputs -->
@@ -218,12 +238,12 @@
                              Style="{StaticResource InputStyle}" TextAlignment="Right"/>
                     
                     <TextBlock Grid.Column="3" Text="Dr/Cr:" Style="{StaticResource LabelStyle}"/>
-                    <ComboBox Grid.Column="4" SelectedValue="{Binding CurrentVoucher.DrCr, UpdateSourceTrigger=PropertyChanged}" 
+                    <ComboBox Grid.Column="4" 
+                              SelectedValue="{Binding CurrentVoucher.DrCr, UpdateSourceTrigger=PropertyChanged}" 
+                              SelectedValuePath="Content"
                               Height="30" VerticalContentAlignment="Center">
-                        <ComboBox.Items>
-                            <System:String xmlns:System="clr-namespace:System;assembly=System.Runtime">D</System:String>
-                            <System:String xmlns:System="clr-namespace:System;assembly=System.Runtime">C</System:String>
-                        </ComboBox.Items>
+                        <ComboBoxItem Content="D"/>
+                        <ComboBoxItem Content="C"/>
                     </ComboBox>
                     
                     <TextBlock Grid.Column="6" Text="Narration:" Style="{StaticResource LabelStyle}"/>
@@ -241,7 +261,7 @@
             </Grid>
         </Border>
         
-        <!-- Vouchers DataGrid -->
+        <!-- Vouchers DataGrid with Virtualization -->
         <DataGrid Grid.Row="3" 
                   ItemsSource="{Binding Vouchers}" 
                   SelectedItem="{Binding SelectedVoucher}"
@@ -252,7 +272,13 @@
                   HeadersVisibility="Column"
                   AlternationCount="2"
                   AlternatingRowBackground="#f8f9fa"
-                  SelectionMode="Single">
+                  SelectionMode="Single"
+                  EnableRowVirtualization="True"
+                  EnableColumnVirtualization="True"
+                  VirtualizingPanel.VirtualizationMode="Recycling"
+                  VirtualizingPanel.IsVirtualizing="True"
+                  VirtualizingPanel.ScrollUnit="Item"
+                  ScrollViewer.CanContentScroll="True">
             
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Voucher No" Binding="{Binding VoucherNumber}" Width="100" IsReadOnly="True">
