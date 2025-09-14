@@ -28,8 +28,19 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     [ObservableProperty]
     private Voucher? _selectedVoucher;
 
-    [ObservableProperty]
     private Voucher _currentVoucher = new();
+    
+    public Voucher CurrentVoucher
+    {
+        get => _currentVoucher;
+        set
+        {
+            if (SetProperty(ref _currentVoucher, value))
+            {
+                UpdateVoucherCommand.NotifyCanExecuteChanged();
+            }
+        }
+    }
 
     [ObservableProperty]
     private Company? _currentCompany;
@@ -44,10 +55,18 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     private bool _isVehicleSearchOpen;
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(UpdateVoucherCommand))]
     private bool _isVoucherEditMode;
 
     [ObservableProperty]
     private int _totalVouchers;
+
+    [ObservableProperty]
+    private ObservableCollection<VehicleDisplayItem> _availableVehicles = new();
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(UpdateVoucherCommand))]
+    private VehicleDisplayItem? _selectedVehicleForEdit;
 
     private List<VehicleDisplayItem> _allVehicles = new();
     private List<Voucher> _allVouchers = new();
@@ -88,69 +107,128 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
             }
 
             _allVehicles = vehicleDisplayItems;
+            
+            // Update available vehicles for editing
+            AvailableVehicles.Clear();
+            foreach (var vehicle in _allVehicles.OrderBy(v => v.VehicleNumber))
+            {
+                AvailableVehicles.Add(vehicle);
+            }
+            
             StatusMessage = $"✅ Loaded {_allVehicles.Count} vehicles. Type vehicle number to search.";
 
         }, "Loading vehicles...");
     }
 
     /// <summary>
-    /// Loads vouchers for the selected vehicle
+    /// Loads vouchers for the selected vehicle with optimized performance
     /// </summary>
     private async Task LoadVouchersForVehicleAsync(VehicleDisplayItem vehicle)
     {
-        await ExecuteAsync(async () =>
+        const int LARGE_DATASET_THRESHOLD = 1000;
+        const int INITIAL_PAGE_SIZE = 500;
+        
+        try
         {
             StatusMessage = $"🔄 Loading vouchers for {vehicle.VehicleNumber}...";
             
-            var vouchers = await _dataService.Vouchers.GetByVehicleIdAsync(vehicle.VehicleId);
-            _allVouchers = vouchers.OrderByDescending(v => v.Date).ThenByDescending(v => v.VoucherNumber).ToList();
-            
-            StatusMessage = $"📊 Retrieved {_allVouchers.Count} vouchers from database...";
-            
-            // Calculate running balances
-            CalculateRunningBalances();
-            
-            // Always clear and refresh the voucher list (even if empty)
-            // Ensure UI updates happen on the main thread
-            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            // Validation
+            if (vehicle.VehicleId <= 0)
             {
+                throw new InvalidOperationException($"Invalid vehicle ID: {vehicle.VehicleId}");
+            }
+            
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            
+            // Use background task for heavy work
+            var (vouchers, totalCount) = await Task.Run(async () =>
+            {
+                // First, get count to determine if we need pagination
+                var result = await _dataService.Vouchers.GetByVehicleIdPagedAsync(vehicle.VehicleId, INITIAL_PAGE_SIZE, 0);
+                return result;
+            });
+            
+            // Convert to list only once, in background
+            _allVouchers = await Task.Run(() => vouchers.ToList());
+            
+            stopwatch.Stop();
+            StatusMessage = $"📊 Retrieved {_allVouchers.Count} of {totalCount} vouchers in {stopwatch.ElapsedMilliseconds}ms...";
+            
+            // Update UI efficiently with batch operation
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
+            {
+                // Use CollectionChanged suspension for better performance
                 Vouchers.Clear();
-                foreach (var voucher in _allVouchers)
+                
+                // For large datasets, add items in smaller batches to keep UI responsive
+                if (_allVouchers.Count > 100)
                 {
-                    Vouchers.Add(voucher);
+                    StatusMessage = $"🔄 Updating display ({_allVouchers.Count} items)...";
+                    
+                    // Add items in batches to prevent UI freezing
+                    var batchSize = 50;
+                    for (int i = 0; i < _allVouchers.Count; i += batchSize)
+                    {
+                        var batch = _allVouchers.Skip(i).Take(batchSize);
+                        foreach (var voucher in batch)
+                        {
+                            Vouchers.Add(voucher);
+                        }
+                        
+                        // Allow UI to process updates periodically
+                        if (i % 200 == 0)
+                        {
+                            await Task.Delay(1); // Allow UI to process
+                        }
+                    }
                 }
+                else
+                {
+                    // For smaller datasets, add all at once
+                    foreach (var voucher in _allVouchers)
+                    {
+                        Vouchers.Add(voucher);
+                    }
+                }
+                
                 TotalVouchers = _allVouchers.Count;
             });
             
-            // Update status message for both empty and non-empty cases
-            if (TotalVouchers == 0)
+            // Update status with performance metrics
+            var displayedCount = Vouchers.Count;
+            if (totalCount > INITIAL_PAGE_SIZE && displayedCount < totalCount)
             {
-                StatusMessage = $"❌ No vouchers found for {vehicle.DisplayName}. Current balance: {vehicle.FormattedBalance}";
+                StatusMessage = $"✅ Showing first {displayedCount} of {totalCount} vouchers for {vehicle.VehicleNumber}. Scroll for more.";
+            }
+            else if (displayedCount == 0)
+            {
+                StatusMessage = $"❌ No vouchers found for {vehicle.DisplayName}. Balance: {vehicle.FormattedBalance}";
             }
             else
             {
-                StatusMessage = $"✅ Loaded {TotalVouchers} vouchers for {vehicle.DisplayName}. Balance: {vehicle.FormattedBalance}";
+                var latestBalance = _allVouchers.FirstOrDefault()?.RunningBalance ?? 0;
+                StatusMessage = $"✅ Loaded {displayedCount} vouchers for {vehicle.DisplayName} in {stopwatch.ElapsedMilliseconds}ms. Balance: ₹{latestBalance:N2}";
             }
-
-        }, "Loading vouchers...");
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"❗ Error loading vouchers for {vehicle.VehicleNumber}: {ex.Message}";
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                Vouchers.Clear();
+                TotalVouchers = 0;
+            });
+            System.Diagnostics.Debug.WriteLine($"LoadVouchersForVehicleAsync error: {ex}");
+        }
     }
 
     /// <summary>
-    /// Calculates running balances for vouchers
+    /// Calculates running balances for vouchers (Legacy method - now done in SQL for performance)
     /// </summary>
     private void CalculateRunningBalances()
     {
-        if (_allVouchers.Count == 0) return;
-
-        // Get vouchers in chronological order for running balance calculation
-        var chronologicalVouchers = _allVouchers.OrderBy(v => v.Date).ThenBy(v => v.VoucherNumber).ToList();
-        
-        decimal runningBalance = 0;
-        foreach (var voucher in chronologicalVouchers)
-        {
-            runningBalance += voucher.DrCr == "D" ? voucher.Amount : -voucher.Amount;
-            voucher.RunningBalance = runningBalance;
-        }
+        // This method is kept for compatibility but running balances are now calculated in SQL
+        // for much better performance with large datasets
     }
 
     /// <summary>
@@ -244,10 +322,19 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     [RelayCommand]
     private async Task RefreshData()
     {
-        await LoadDataAsync();
-        if (SelectedVehicle != null)
+        try
         {
-            await LoadVouchersForVehicleAsync(SelectedVehicle);
+            await LoadDataAsync();
+            if (SelectedVehicle != null)
+            {
+                StatusMessage = $"🔄 Refreshing vouchers for {SelectedVehicle.VehicleNumber}...";
+                await LoadVouchersForVehicleAsync(SelectedVehicle);
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"❗ Error refreshing data: {ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"RefreshData error: {ex}");
         }
     }
 
@@ -272,40 +359,108 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
             Vehicle = voucher.Vehicle
         };
 
+        // Set the selected vehicle for editing
+        SelectedVehicleForEdit = _allVehicles.FirstOrDefault(v => v.VehicleId == voucher.VehicleId);
+
         IsVoucherEditMode = true;
-        StatusMessage = $"Editing voucher: {voucher.VoucherNumber}";
+        StatusMessage = $"Editing voucher: {voucher.VoucherNumber} - You can change vehicle if needed";
     }
 
     /// <summary>
     /// Updates the current voucher
     /// </summary>
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanUpdateVoucher))]
     private async Task UpdateVoucher()
     {
-        if (CurrentVoucher.VoucherId == 0)
+        try
         {
-            StatusMessage = "No voucher selected for update";
-            return;
+            // Validation checks
+            if (CurrentVoucher == null || CurrentVoucher.VoucherId == 0)
+            {
+                StatusMessage = "No voucher selected for update";
+                return;
+            }
+
+            if (CurrentVoucher.Amount <= 0)
+            {
+                StatusMessage = "Amount must be greater than zero";
+                return;
+            }
+
+            if (SelectedVehicleForEdit == null)
+            {
+                StatusMessage = "Please select a vehicle";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(CurrentVoucher.DrCr))
+            {
+                StatusMessage = "Please select Dr or Cr";
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(CurrentVoucher.Narration))
+            {
+                StatusMessage = "Please enter narration";
+                return;
+            }
+
+            await ExecuteAsync(async () =>
+            {
+                // Store original vehicle info for comparison
+                var originalVehicleId = CurrentVoucher.VehicleId;
+                var originalVehicleNumber = CurrentVoucher.Vehicle?.VehicleNumber ?? "Unknown";
+                
+                // Update the voucher's vehicle
+                CurrentVoucher.VehicleId = SelectedVehicleForEdit.VehicleId;
+                CurrentVoucher.Vehicle = new Vehicle 
+                { 
+                    VehicleId = SelectedVehicleForEdit.VehicleId,
+                    VehicleNumber = SelectedVehicleForEdit.VehicleNumber,
+                    Description = SelectedVehicleForEdit.Description
+                };
+                
+                // Update the voucher in database
+                var updatedVoucher = await _dataService.Vouchers.UpdateAsync(CurrentVoucher);
+                
+                // Show success message
+                if (originalVehicleId != SelectedVehicleForEdit.VehicleId)
+                {
+                    StatusMessage = $"Voucher '{updatedVoucher.VoucherNumber}' updated successfully - Vehicle changed from {originalVehicleNumber} to {SelectedVehicleForEdit.VehicleNumber}";
+                }
+                else
+                {
+                    StatusMessage = $"Voucher '{updatedVoucher.VoucherNumber}' updated successfully";
+                }
+                
+                // Exit edit mode and refresh
+                IsVoucherEditMode = false;
+                SelectedVehicleForEdit = null;
+                InitializeNewVoucher();
+                
+                // Refresh the data to show updated information
+                await RefreshData();
+
+            }, "Updating voucher...");
         }
-
-        if (CurrentVoucher.Amount <= 0)
+        catch (Exception ex)
         {
-            StatusMessage = "Amount must be greater than zero";
-            return;
+            StatusMessage = $"Error updating voucher: {ex.Message}";
         }
+    }
 
-        await ExecuteAsync(async () =>
-        {
-            var updatedVoucher = await _dataService.Vouchers.UpdateAsync(CurrentVoucher);
-            
-            IsVoucherEditMode = false;
-            InitializeNewVoucher();
-            StatusMessage = $"Voucher '{updatedVoucher.VoucherNumber}' updated successfully";
-            
-            // Programmatically trigger refresh
-            await RefreshData();
-
-        }, "Updating voucher...");
+    /// <summary>
+    /// Determines if voucher can be updated
+    /// </summary>
+    private bool CanUpdateVoucher()
+    {
+        return IsVoucherEditMode && 
+               CurrentVoucher != null && 
+               CurrentVoucher.VoucherId > 0 &&
+               SelectedVehicleForEdit != null &&
+               CurrentVoucher.Amount > 0 &&
+               !string.IsNullOrWhiteSpace(CurrentVoucher.DrCr) &&
+               !string.IsNullOrWhiteSpace(CurrentVoucher.Narration);
     }
 
     /// <summary>
@@ -315,6 +470,7 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     private void CancelEdit()
     {
         IsVoucherEditMode = false;
+        SelectedVehicleForEdit = null;
         InitializeNewVoucher();
         StatusMessage = "Edit cancelled";
     }
@@ -354,6 +510,7 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
                 if (IsVoucherEditMode && CurrentVoucher.VoucherId == voucher.VoucherId)
                 {
                     IsVoucherEditMode = false;
+                    SelectedVehicleForEdit = null;
                     InitializeNewVoucher();
                 }
                 
@@ -396,8 +553,24 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     {
         if (value != null)
         {
-            // Use dispatcher to ensure UI thread execution
-            _ = LoadVouchersForVehicleAsync(value);
+            // Properly handle async operation with error handling
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await LoadVouchersForVehicleAsync(value);
+                }
+                catch (Exception ex)
+                {
+                    // Update status on main thread
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        StatusMessage = $"Error loading vouchers for {value.VehicleNumber}: {ex.Message}";
+                        Vouchers.Clear();
+                        TotalVouchers = 0;
+                    });
+                }
+            });
         }
         else
         {

@@ -300,27 +300,134 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<IEnumerable<Voucher>> GetByVehicleIdAsync(int vehicleId)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
-        const string sql = @"
-            SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
-                   v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
-                   ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
-            FROM Vouchers v
-            LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
-            WHERE v.VehicleId = @VehicleId
-            ORDER BY v.Date DESC, v.VoucherNumber DESC";
-        
-        var vouchers = await connection.QueryAsync<Voucher, Vehicle, Voucher>(sql,
-            (voucher, vehicle) => 
-            {
-                voucher.Vehicle = vehicle;
-                return voucher;
-            },
-            new { VehicleId = vehicleId },
-            splitOn: "VehId");
+        try
+        {
+            using var connection = await _dbConnection.GetConnectionAsync();
             
-        return vouchers;
+            // Optimized query with pre-calculated running balance
+            const string sql = @"
+                WITH VoucherData AS (
+                    SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
+                           v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
+                           ve.VehicleNumber, ve.Description,
+                           SUM(CASE WHEN v2.DrCr = 'D' THEN v2.Amount ELSE -v2.Amount END) AS RunningBalance
+                    FROM Vouchers v
+                    LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
+                    LEFT JOIN Vouchers v2 ON v2.VehicleId = v.VehicleId 
+                        AND (v2.Date < v.Date OR (v2.Date = v.Date AND v2.VoucherId <= v.VoucherId))
+                    WHERE v.VehicleId = @VehicleId
+                    GROUP BY v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
+                             v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
+                             ve.VehicleNumber, ve.Description
+                )
+                SELECT VoucherId, CompanyId, VoucherNumber, Date, VehicleId, 
+                       Amount, DrCr, Narration, CreatedDate, ModifiedDate,
+                       VehicleNumber, Description, RunningBalance
+                FROM VoucherData
+                ORDER BY Date DESC, VoucherId DESC
+                LIMIT 1000";
+            
+            var vouchers = await connection.QueryAsync<dynamic>(sql, new { VehicleId = vehicleId });
+            
+            return vouchers.Select(v => new Voucher
+            {
+                VoucherId = v.VoucherId,
+                CompanyId = v.CompanyId,
+                VoucherNumber = v.VoucherNumber,
+                Date = v.Date,
+                VehicleId = v.VehicleId,
+                Amount = v.Amount,
+                DrCr = v.DrCr,
+                Narration = v.Narration ?? string.Empty,
+                CreatedDate = v.CreatedDate,
+                ModifiedDate = v.ModifiedDate,
+                RunningBalance = (decimal)(v.RunningBalance ?? 0),
+                Vehicle = new Vehicle
+                {
+                    VehicleId = v.VehicleId,
+                    VehicleNumber = v.VehicleNumber ?? string.Empty,
+                    Description = v.Description ?? string.Empty
+                }
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in GetByVehicleIdAsync for vehicleId {vehicleId}: {ex.Message}");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets paginated vouchers for a vehicle with pre-calculated running balances
+    /// </summary>
+    public async Task<(IEnumerable<Voucher> Vouchers, int TotalCount)> GetByVehicleIdPagedAsync(int vehicleId, int pageSize = 500, int offset = 0)
+    {
+        try
+        {
+            using var connection = await _dbConnection.GetConnectionAsync();
+            
+            // First get total count
+            const string countSql = "SELECT COUNT(*) FROM Vouchers WHERE VehicleId = @VehicleId";
+            var totalCount = await connection.QuerySingleAsync<int>(countSql, new { VehicleId = vehicleId });
+            
+            // Then get paginated data with running balance
+            const string sql = @"
+                WITH VoucherData AS (
+                    SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
+                           v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
+                           ve.VehicleNumber, ve.Description,
+                           SUM(CASE WHEN v2.DrCr = 'D' THEN v2.Amount ELSE -v2.Amount END) AS RunningBalance,
+                           ROW_NUMBER() OVER (ORDER BY v.Date DESC, v.VoucherId DESC) AS RowNum
+                    FROM Vouchers v
+                    LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
+                    LEFT JOIN Vouchers v2 ON v2.VehicleId = v.VehicleId 
+                        AND (v2.Date < v.Date OR (v2.Date = v.Date AND v2.VoucherId <= v.VoucherId))
+                    WHERE v.VehicleId = @VehicleId
+                    GROUP BY v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
+                             v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
+                             ve.VehicleNumber, ve.Description
+                )
+                SELECT VoucherId, CompanyId, VoucherNumber, Date, VehicleId, 
+                       Amount, DrCr, Narration, CreatedDate, ModifiedDate,
+                       VehicleNumber, Description, RunningBalance
+                FROM VoucherData
+                WHERE RowNum > @Offset AND RowNum <= @Offset + @PageSize
+                ORDER BY Date DESC, VoucherId DESC";
+            
+            var vouchers = await connection.QueryAsync<dynamic>(sql, new { 
+                VehicleId = vehicleId, 
+                Offset = offset, 
+                PageSize = pageSize 
+            });
+            
+            var voucherList = vouchers.Select(v => new Voucher
+            {
+                VoucherId = v.VoucherId,
+                CompanyId = v.CompanyId,
+                VoucherNumber = v.VoucherNumber,
+                Date = v.Date,
+                VehicleId = v.VehicleId,
+                Amount = v.Amount,
+                DrCr = v.DrCr,
+                Narration = v.Narration ?? string.Empty,
+                CreatedDate = v.CreatedDate,
+                ModifiedDate = v.ModifiedDate,
+                RunningBalance = (decimal)(v.RunningBalance ?? 0),
+                Vehicle = new Vehicle
+                {
+                    VehicleId = v.VehicleId,
+                    VehicleNumber = v.VehicleNumber ?? string.Empty,
+                    Description = v.Description ?? string.Empty
+                }
+            }).ToList();
+            
+            return (voucherList, totalCount);
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Error in GetByVehicleIdPagedAsync for vehicleId {vehicleId}: {ex.Message}");
+            throw;
+        }
     }
 
     public async Task<IEnumerable<Voucher>> GetVehicleLedgerAsync(int vehicleId, DateTime? startDate = null, DateTime? endDate = null)

@@ -16,17 +16,17 @@ public class RecoveryItem
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
-    /// Credit status description (e.g., "No credits ever", "45 days since last credit")
+    /// Transaction status description (e.g., "No transactions ever", "45 days since last credit", "30 days since last debit")
     /// </summary>
     public string CreditStatus { get; set; } = string.Empty;
 
     /// <summary>
-    /// Whether the vehicle has had any credit transactions
+    /// Whether the vehicle has had any transactions (credit or debit)
     /// </summary>
     public bool HasCredits { get; set; }
 
     /// <summary>
-    /// Number of days since last credit (for sorting purposes)
+    /// Number of days since last transaction (for sorting purposes)
     /// </summary>
     public int DaysSinceLastCredit { get; set; }
 }
