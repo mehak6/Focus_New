@@ -146,8 +146,8 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
             
             foreach (var group in groupedVehicles)
             {
-                // Add group header if there are multiple vehicles with same prefix
-                if (group.Count() > 1)
+                // Add group header only for groups with 3 or more vehicles (smart grouping)
+                if (group.Count() >= 3)
                 {
                     RecoveryItems.Add(new RecoveryItem
                     {
