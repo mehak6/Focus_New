@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using FocusVoucherSystem.Services;
 using FocusVoucherSystem.Models;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Windows;
 using System.Linq;
 
@@ -35,10 +36,36 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
         get => _currentVoucher;
         set
         {
+            // Unsubscribe from previous voucher's property changes
+            if (_currentVoucher != null)
+            {
+                _currentVoucher.PropertyChanged -= OnCurrentVoucherPropertyChanged;
+            }
+            
             if (SetProperty(ref _currentVoucher, value))
             {
+                // Subscribe to new voucher's property changes
+                if (_currentVoucher != null)
+                {
+                    _currentVoucher.PropertyChanged += OnCurrentVoucherPropertyChanged;
+                }
+                
                 UpdateVoucherCommand.NotifyCanExecuteChanged();
             }
+        }
+    }
+
+    /// <summary>
+    /// Handles property changes in the current voucher to update button state
+    /// </summary>
+    private void OnCurrentVoucherPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // Key properties that affect whether update button should be enabled
+        if (e.PropertyName == nameof(Voucher.Amount) ||
+            e.PropertyName == nameof(Voucher.DrCr) ||
+            e.PropertyName == nameof(Voucher.Narration))
+        {
+            UpdateVoucherCommand.NotifyCanExecuteChanged();
         }
     }
 
@@ -125,7 +152,6 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     /// </summary>
     private async Task LoadVouchersForVehicleAsync(VehicleDisplayItem vehicle)
     {
-        const int LARGE_DATASET_THRESHOLD = 1000;
         const int INITIAL_PAGE_SIZE = 500;
         
         try

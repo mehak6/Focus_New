@@ -117,10 +117,6 @@
                         <Button Content="CSV" Command="{Binding ExportCsvCommand}"
                                 Style="{StaticResource SecondaryButtonStyle}" Width="80" Height="38" Margin="5,0"/>
 
-                        <!-- Print Button -->
-                        <Button Content="PRINT" Command="{Binding PrintReportCommand}"
-                                Style="{StaticResource SecondaryButtonStyle}" Width="80" Height="38" Margin="5,0"/>
-
                         <!-- Refresh Button -->
                         <Button Content="REFRESH" Command="{Binding RefreshDataCommand}"
                                 Style="{StaticResource SecondaryButtonStyle}" Width="90" Height="38" Margin="5,0"/>

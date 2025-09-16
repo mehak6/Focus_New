@@ -16,7 +16,7 @@ public class RecoveryItem
     public string Description { get; set; } = string.Empty;
 
     /// <summary>
-    /// Last transaction amount
+    /// Last credit transaction amount
     /// </summary>
     public decimal LastAmount { get; set; }
 
