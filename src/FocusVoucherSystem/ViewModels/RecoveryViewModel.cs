@@ -14,6 +14,7 @@ namespace FocusVoucherSystem.ViewModels;
 public partial class RecoveryViewModel : BaseViewModel, INavigationAware
 {
     private readonly ExportService _exportService;
+    private readonly PrintService _printService;
 
     [ObservableProperty]
     private int _days = 30;
@@ -32,6 +33,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
     public RecoveryViewModel(DataService dataService) : base(dataService)
     {
         _exportService = new ExportService();
+        _printService = new PrintService();
     }
 
     /// <summary>
@@ -72,8 +74,15 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
                 
                 if (!hasRecentTransaction)
                 {
-                    // Find the last transaction to show when it was
+                    // Find the last transaction (any type) to show when it was
                     var lastVoucher = vehicleVouchers
+                        .OrderByDescending(v => v.Date)
+                        .ThenByDescending(v => v.VoucherId)
+                        .FirstOrDefault();
+                    
+                    // Find the last CREDIT transaction for amount display
+                    var lastCreditVoucher = vehicleVouchers
+                        .Where(v => v.DrCr == "C")
                         .OrderByDescending(v => v.Date)
                         .ThenByDescending(v => v.VoucherId)
                         .FirstOrDefault();
@@ -87,7 +96,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
                     
                     string transactionStatus;
                     int daysSinceLastTransaction;
-                    decimal lastAmount = 0;
+                    decimal lastCreditAmount = 0;
                     DateTime? lastDate = null;
                     
                     if (lastVoucher == null)
@@ -100,10 +109,14 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
                     {
                         // Last transaction was before cutoff date
                         daysSinceLastTransaction = (int)(DateTime.Today - lastVoucher.Date).TotalDays;
-                        string transactionType = lastVoucher.DrCr == "C" ? "credit" : "debit";
-                        transactionStatus = $"{daysSinceLastTransaction} days since last {transactionType}";
-                        lastAmount = lastVoucher.Amount;
+                        transactionStatus = daysSinceLastTransaction.ToString();
                         lastDate = lastVoucher.Date;
+                    }
+                    
+                    // Set last credit amount if there was a credit transaction
+                    if (lastCreditVoucher != null)
+                    {
+                        lastCreditAmount = lastCreditVoucher.Amount;
                     }
                     
                     // Extract vehicle group prefix (e.g., "UP-25" from "UP-25C-1234")
@@ -113,7 +126,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
                     {
                         VehicleNumber = vehicle.VehicleNumber,
                         Description = vehicle.Description ?? "-",
-                        LastAmount = lastAmount,
+                        LastAmount = lastCreditAmount,
                         LastDate = lastDate,
                         RemainingBalance = currentBalance,
                         CreditStatus = transactionStatus,
@@ -143,7 +156,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
                         LastAmount = 0,
                         LastDate = null,
                         RemainingBalance = 0,
-                        CreditStatus = $"{group.Count()} vehicles in this group",
+                        CreditStatus = string.Empty,
                         HasCredits = false,
                         DaysSinceLastCredit = 0,
                         IsGroupHeader = true,
@@ -168,31 +181,42 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
     }
 
     /// <summary>
-    /// Extracts vehicle group prefix from vehicle number (e.g., "UP-25" from "UP-25C-1234")
+    /// Extracts vehicle group prefix from vehicle number (e.g., "UP-25-A" from "UP-25A-1234")
     /// </summary>
     private string ExtractVehicleGroupPrefix(string vehicleNumber)
     {
         if (string.IsNullOrEmpty(vehicleNumber))
             return "OTHER";
             
-        // Look for patterns like UP-25, WB-23, etc.
-        // Extract state code and first number group
+        // Look for patterns like UP-25A, UP-25B, WB-23C, etc.
+        // Extract state code, number, and letter subcategory
         var parts = vehicleNumber.Split('-');
         if (parts.Length >= 2)
         {
             var statePart = parts[0]; // e.g., "UP"
             var numberPart = parts[1]; // e.g., "25C" or "23B"
             
-            // Extract just the number from the second part
+            // Extract numbers and letters separately
             var numbers = new string(numberPart.Where(char.IsDigit).ToArray());
+            var letters = new string(numberPart.Where(char.IsLetter).ToArray());
+            
             if (!string.IsNullOrEmpty(numbers))
             {
-                return $"{statePart}-{numbers}"; // e.g., "UP-25", "WB-23"
+                if (!string.IsNullOrEmpty(letters))
+                {
+                    // Include subcategory letter: e.g., "UP-25-A", "WB-23-B"
+                    return $"{statePart}-{numbers}-{letters}";
+                }
+                else
+                {
+                    // No letter subcategory: e.g., "UP-25"
+                    return $"{statePart}-{numbers}";
+                }
             }
         }
         
-        // Fallback: use first 5 characters or the whole string if shorter
-        return vehicleNumber.Length > 5 ? vehicleNumber.Substring(0, 5) : vehicleNumber;
+        // Fallback: use first 6 characters or the whole string if shorter
+        return vehicleNumber.Length > 6 ? vehicleNumber.Substring(0, 6) : vehicleNumber;
     }
 
     /// <summary>
@@ -231,7 +255,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
             using (var writer = new StreamWriter(filePath))
             {
                 // Header
-                writer.WriteLine("Vehicle Type,Vehicle Number,Last Amount,Last Date,Remaining Balance,Transaction Status");
+                writer.WriteLine("Vehicle Type,Vehicle Number,Last Credit Amount,Last Date,Remaining Balance,Transaction Status");
                 
                 // Data
                 foreach (var item in RecoveryItems)
@@ -262,6 +286,35 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
         {
             StatusMessage = $"Export failed: {ex.Message}";
         }
+    }
+
+    /// <summary>
+    /// Prints the recovery statement
+    /// </summary>
+    [RelayCommand]
+    private Task PrintRecovery()
+    {
+        if (!RecoveryItems.Any())
+        {
+            StatusMessage = "No data to print. Please generate the recovery statement first.";
+            return Task.CompletedTask;
+        }
+
+        try
+        {
+            var title = _currentCompany != null 
+                ? $"Recovery Statement - {_currentCompany.Name} (Vehicles with no transactions in {Days} days)"
+                : "Recovery Statement";
+                
+            _printService.PrintRecoveryDirectly(title, RecoveryItems);
+            StatusMessage = "✅ Recovery statement sent to printer";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"❌ Print failed: {ex.Message}";
+        }
+        
+        return Task.CompletedTask;
     }
 
     #region INavigationAware Implementation

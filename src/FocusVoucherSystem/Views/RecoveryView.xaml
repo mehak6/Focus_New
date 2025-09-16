@@ -90,6 +90,8 @@
                             Style="{StaticResource PrimaryButtonStyle}" Width="120"/>
                     <Button Content="CLEAR" Command="{Binding ClearCommand}"
                             Style="{StaticResource SecondaryButtonStyle}" Width="90"/>
+                    <Button Content="PRINT" Command="{Binding PrintRecoveryCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}" Width="90"/>
                     <Button Content="EXPORT CSV" Command="{Binding ExportCommand}"
                             Style="{StaticResource SecondaryButtonStyle}" Width="120"/>
                 </StackPanel>
@@ -182,7 +184,7 @@
                         </DataGridTextColumn.ElementStyle>
                     </DataGridTextColumn>
 
-                    <DataGridTextColumn Header="Last Amount" Width="120" IsReadOnly="True">
+                    <DataGridTextColumn Header="Last Credit Amount" Width="130" IsReadOnly="True">
                         <DataGridTextColumn.Binding>
                             <Binding Path="LastAmount" StringFormat="₹{0:N2}"/>
                         </DataGridTextColumn.Binding>
