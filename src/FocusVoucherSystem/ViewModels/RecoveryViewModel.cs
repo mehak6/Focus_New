@@ -22,7 +22,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
     private ObservableCollection<RecoveryItem> _recoveryItems = new();
 
     [ObservableProperty]
-    private string _statusMessage = "Enter number of days and click Generate to find vehicles without any transactions";
+    private string _statusMessage = "Enter number of days and click Generate to find vehicles with no debit/credit transactions in that period";
 
     [ObservableProperty]
     private int _totalVehicles;
@@ -60,62 +60,50 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
             var allVehicles = await _dataService.Vehicles.GetActiveByCompanyIdAsync(_currentCompany.CompanyId);
             var cutoffDate = DateTime.Today.AddDays(-Days);
             
-            int vehiclesWithoutCredits = 0;
+            int inactiveVehicles = 0;
             
             foreach (var vehicle in allVehicles)
             {
                 // Get all transactions (both credit and debit) for this vehicle
                 var vehicleVouchers = await _dataService.Vouchers.GetByVehicleIdAsync(vehicle.VehicleId);
                 
-                // Find the last transaction (credit or debit)
-                var lastVoucher = vehicleVouchers
-                    .OrderByDescending(v => v.Date)
-                    .ThenByDescending(v => v.VoucherId)
-                    .FirstOrDefault();
+                // Check if vehicle had ANY transaction within the specified period
+                var hasRecentTransaction = vehicleVouchers.Any(v => v.Date >= cutoffDate);
                 
-                string transactionStatus;
-                bool hasTransactions;
-                int daysSinceLastTransaction;
-                bool shouldInclude = false;
-                
-                if (lastVoucher == null)
+                if (!hasRecentTransaction)
                 {
-                    // No transactions ever
-                    transactionStatus = "No transactions ever";
-                    hasTransactions = false;
-                    daysSinceLastTransaction = 9999;
-                    shouldInclude = true;
-                }
-                else if (lastVoucher.Date < cutoffDate)
-                {
-                    // Last transaction was before cutoff date
-                    daysSinceLastTransaction = (int)(DateTime.Today - lastVoucher.Date).TotalDays;
-                    string transactionType = lastVoucher.DrCr == "C" ? "credit" : "debit";
-                    transactionStatus = $"{daysSinceLastTransaction} days since last {transactionType}";
-                    hasTransactions = true;
-                    shouldInclude = true;
-                }
-                else
-                {
-                    // Had transaction within specified period - don't include
-                    daysSinceLastTransaction = (int)(DateTime.Today - lastVoucher.Date).TotalDays;
-                    string transactionType = lastVoucher.DrCr == "C" ? "credit" : "debit";
-                    transactionStatus = $"{daysSinceLastTransaction} days since last {transactionType}";
-                    hasTransactions = true;
-                    shouldInclude = false;
-                }
-                
-                // Only include vehicles that meet the criteria
-                if (shouldInclude)
-                {
-                    vehiclesWithoutCredits++;
+                    // This vehicle had no transactions in the specified period
+                    inactiveVehicles++;
+                    
+                    // Find the last transaction to show when it was
+                    var lastVoucher = vehicleVouchers
+                        .OrderByDescending(v => v.Date)
+                        .ThenByDescending(v => v.VoucherId)
+                        .FirstOrDefault();
+                    
+                    string transactionStatus;
+                    int daysSinceLastTransaction;
+                    
+                    if (lastVoucher == null)
+                    {
+                        // No transactions ever
+                        transactionStatus = "No transactions ever";
+                        daysSinceLastTransaction = 9999;
+                    }
+                    else
+                    {
+                        // Last transaction was before cutoff date
+                        daysSinceLastTransaction = (int)(DateTime.Today - lastVoucher.Date).TotalDays;
+                        string transactionType = lastVoucher.DrCr == "C" ? "credit" : "debit";
+                        transactionStatus = $"{daysSinceLastTransaction} days since last {transactionType} on {lastVoucher.Date:dd/MM/yyyy}";
+                    }
                     
                     RecoveryItems.Add(new RecoveryItem
                     {
                         VehicleNumber = vehicle.VehicleNumber,
                         Description = vehicle.Description ?? "-",
                         CreditStatus = transactionStatus,
-                        HasCredits = hasTransactions,
+                        HasCredits = lastVoucher != null,
                         DaysSinceLastCredit = daysSinceLastTransaction
                     });
                 }
@@ -129,10 +117,10 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
                 RecoveryItems.Add(item);
             }
             
-            TotalVehicles = vehiclesWithoutCredits;
-            StatusMessage = vehiclesWithoutCredits > 0 
-                ? $"Found {vehiclesWithoutCredits} vehicles with no transactions in the last {Days} days"
-                : $"No vehicles found without transactions in the last {Days} days";
+            TotalVehicles = inactiveVehicles;
+            StatusMessage = inactiveVehicles > 0 
+                ? $"Found {inactiveVehicles} vehicles with no debit/credit transactions in the last {Days} days"
+                : $"All vehicles had transactions within the last {Days} days";
                 
         }, "Generating recovery statement...");
     }
@@ -145,7 +133,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
     {
         RecoveryItems.Clear();
         TotalVehicles = 0;
-        StatusMessage = "Enter number of days and click Generate to find vehicles without any transactions";
+        StatusMessage = "Enter number of days and click Generate to find vehicles with no debit/credit transactions in that period";
     }
 
     /// <summary>
@@ -206,7 +194,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
         if (parameters is Company company)
         {
             _currentCompany = company;
-            StatusMessage = $"Recovery Statement for {company.Name} - Enter days and click Generate";
+            StatusMessage = $"Recovery Statement for {company.Name} - Enter days to find vehicles with no transactions in that period";
         }
         return Task.CompletedTask;
     }

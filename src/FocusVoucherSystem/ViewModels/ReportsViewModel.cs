@@ -172,59 +172,99 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
             }
             else
             {
-                var result = await _reportService.GetDayBookAsync(
-                    _company.CompanyId,
-                    StartDate,
-                    EndDate);
-
-                StatusMessage = $"📊 Retrieved {result.Count()} vouchers from database...";
-
-                decimal running = 0m;
-                decimal debits = 0m, credits = 0m;
-                decimal runningDebits = 0m, runningCredits = 0m;
-                var tempRows = new List<ReportRow>();
-
-                foreach (var v in result.OrderBy(v => v.Date).ThenBy(v => v.VoucherNumber))
+                // Perform database query and processing in background thread
+                var (processedRows, totalDebits, totalCredits, voucherCount) = await Task.Run(async () =>
                 {
-                    var amount = v.Amount;
-                    if (v.DrCr == "D") 
-                    { 
-                        running += amount; 
-                        debits += amount;
-                        runningDebits += amount;
-                    }
-                    else 
-                    { 
-                        running -= amount; 
-                        credits += amount;
-                        runningCredits += amount;
-                    }
+                    var result = await _reportService.GetDayBookAsync(
+                        _company.CompanyId,
+                        StartDate,
+                        EndDate);
 
-                    tempRows.Add(new ReportRow
+                    // Convert to list once to avoid multiple enumeration
+                    var vouchers = result as List<Voucher> ?? result.ToList();
+                    var count = vouchers.Count;
+
+                    // Process vouchers in background thread
+                    decimal running = 0m;
+                    decimal debits = 0m, credits = 0m;
+                    decimal runningDebits = 0m, runningCredits = 0m;
+                    var tempRows = new List<ReportRow>(count + count / 10); // Pre-allocate with estimated size
+                    DateTime? lastDate = null;
+
+                    // Vouchers are already sorted by SQL, no need to sort again
+                    foreach (var v in vouchers)
                     {
-                        Date = v.Date,
-                        VoucherNumber = v.VoucherNumber,
-                        VehicleNumber = v.Vehicle?.VehicleNumber ?? string.Empty,
-                        Narration = v.Narration ?? string.Empty,
-                        Amount = v.Amount,
-                        DrCr = v.DrCr,
-                        RunningBalance = running,
-                        DebitBalance = runningDebits,
-                        CreditBalance = runningCredits
-                    });
-                }
+                        // Add spacing row when date changes (except for first entry)
+                        if (lastDate.HasValue && v.Date != lastDate.Value)
+                        {
+                            tempRows.Add(new ReportRow
+                            {
+                                Date = DateTime.MinValue, // Special marker for spacing row
+                                VoucherNumber = 0,
+                                VehicleNumber = string.Empty,
+                                Narration = "─────────────────────────────────────────────────────────────────────────────────────────────────────────",
+                                Amount = 0,
+                                DrCr = string.Empty,
+                                RunningBalance = 0,
+                                DebitBalance = 0,
+                                CreditBalance = 0
+                            });
+                        }
 
-                // Update UI on main thread
+                        var amount = v.Amount;
+                        if (v.DrCr == "D") 
+                        { 
+                            running += amount; 
+                            debits += amount;
+                            runningDebits += amount;
+                        }
+                        else 
+                        { 
+                            running -= amount; 
+                            credits += amount;
+                            runningCredits += amount;
+                        }
+
+                        tempRows.Add(new ReportRow
+                        {
+                            Date = v.Date,
+                            VoucherNumber = v.VoucherNumber,
+                            VehicleNumber = v.Vehicle?.VehicleNumber ?? string.Empty,
+                            Narration = v.Narration ?? string.Empty,
+                            Amount = v.Amount,
+                            DrCr = v.DrCr,
+                            RunningBalance = running,
+                            DebitBalance = runningDebits,
+                            CreditBalance = runningCredits
+                        });
+
+                        lastDate = v.Date;
+                    }
+
+                    return (tempRows, debits, credits, count);
+                });
+
+                StatusMessage = $"📊 Retrieved {voucherCount} vouchers from database...";
+
+                // Update UI on main thread in batches for better responsiveness
                 await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    foreach (var row in tempRows)
+                    ReportRows.Clear();
+                    
+                    // Add rows in batches for better UI performance
+                    const int batchSize = 500;
+                    for (int i = 0; i < processedRows.Count; i += batchSize)
                     {
-                        ReportRows.Add(row);
+                        var batch = processedRows.Skip(i).Take(batchSize);
+                        foreach (var row in batch)
+                        {
+                            ReportRows.Add(row);
+                        }
                     }
                 });
 
-                TotalDebits = debits;
-                TotalCredits = credits;
+                TotalDebits = totalDebits;
+                TotalCredits = totalCredits;
             }
 
             StatusMessage = $"✅ Generated {ReportRows.Count} rows - Dr: ₹{TotalDebits:N2}, Cr: ₹{TotalCredits:N2}";
