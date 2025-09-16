@@ -168,15 +168,15 @@ public class PrintService
         {
             FontFamily = new FontFamily("Segoe UI"),
             FontSize = 12,
-            PagePadding = new Thickness(50)
+            PagePadding = new Thickness(25)
         };
 
         var header = new Paragraph(new Run(title))
         {
-            FontSize = 16,
+            FontSize = 14,
             FontWeight = FontWeights.SemiBold,
             TextAlignment = TextAlignment.Center,
-            Margin = new Thickness(0, 0, 0, 20)
+            Margin = new Thickness(0, 0, 0, 10)
         };
         doc.Blocks.Add(header);
 
@@ -199,7 +199,7 @@ public class PrintService
             var cell = new TableCell(new Paragraph(new Run(h)))
             {
                 FontWeight = FontWeights.Bold,
-                Padding = new Thickness(8, 6, 8, 6),
+                Padding = new Thickness(4, 3, 4, 3),
                 BorderBrush = Brushes.Black,
                 BorderThickness = new Thickness(0, 0, 0, 2)
             };
@@ -219,9 +219,9 @@ public class PrintService
                 // Group header styling - span all columns in one cell
                 var groupHeaderCell = new TableCell(new Paragraph(new Run(item.VehicleNumber)))
                 {
-                    Padding = new Thickness(8, 6, 8, 6),
+                    Padding = new Thickness(4, 3, 4, 3),
                     FontWeight = FontWeights.Bold,
-                    FontSize = 14,
+                    FontSize = 12,
                     Background = Brushes.LightGray,
                     TextAlignment = TextAlignment.Center,
                     ColumnSpan = 5  // Span all 5 columns
@@ -231,26 +231,26 @@ public class PrintService
             else
             {
                 // Regular data row
-                row.Cells.Add(new TableCell(new Paragraph(new Run(item.VehicleNumber))) { Padding = new Thickness(8, 4, 8, 4) });
+                row.Cells.Add(new TableCell(new Paragraph(new Run(item.VehicleNumber))) { Padding = new Thickness(4, 2, 4, 2) });
                 
                 var amountText = item.LastAmount > 0 ? $"₹{item.LastAmount:N2}" : "₹0.00";
                 row.Cells.Add(new TableCell(new Paragraph(new Run(amountText))) 
                 { 
-                    Padding = new Thickness(8, 4, 8, 4), 
+                    Padding = new Thickness(4, 2, 4, 2), 
                     TextAlignment = TextAlignment.Right 
                 });
                 
                 var dateText = item.LastDate?.ToString("dd/MM/yyyy") ?? "Never";
-                row.Cells.Add(new TableCell(new Paragraph(new Run(dateText))) { Padding = new Thickness(8, 4, 8, 4) });
+                row.Cells.Add(new TableCell(new Paragraph(new Run(dateText))) { Padding = new Thickness(4, 2, 4, 2) });
                 
                 row.Cells.Add(new TableCell(new Paragraph(new Run($"₹{item.RemainingBalance:N2}"))) 
                 { 
-                    Padding = new Thickness(8, 4, 8, 4), 
+                    Padding = new Thickness(4, 2, 4, 2), 
                     TextAlignment = TextAlignment.Right,
                     FontWeight = FontWeights.SemiBold
                 });
                 
-                row.Cells.Add(new TableCell(new Paragraph(new Run(item.CreditStatus))) { Padding = new Thickness(8, 4, 8, 4) });
+                row.Cells.Add(new TableCell(new Paragraph(new Run(item.CreditStatus))) { Padding = new Thickness(4, 2, 4, 2) });
             }
         }
 
