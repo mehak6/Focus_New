@@ -164,8 +164,8 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
                     });
                 }
                 
-                // Add vehicles in this group, sorted by days since last transaction
-                var sortedGroupVehicles = group.OrderByDescending(x => x.DaysSinceLastCredit).ToList();
+                // Add vehicles in this group, sorted by vehicle number in ascending order
+                var sortedGroupVehicles = group.OrderBy(x => x.VehicleNumber).ToList();
                 foreach (var vehicle in sortedGroupVehicles)
                 {
                     RecoveryItems.Add(vehicle);
