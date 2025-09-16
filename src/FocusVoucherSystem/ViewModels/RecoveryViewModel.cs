@@ -22,7 +22,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
     private ObservableCollection<RecoveryItem> _recoveryItems = new();
 
     [ObservableProperty]
-    private string _statusMessage = "Enter number of days and click Generate to find vehicles with no debit/credit transactions in that period";
+    private string _statusMessage = "Enter number of days and click Generate to find vehicles with positive balance and no transactions in that period";
 
     [ObservableProperty]
     private int _totalVehicles;
@@ -60,7 +60,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
             var allVehicles = await _dataService.Vehicles.GetActiveByCompanyIdAsync(_currentCompany.CompanyId);
             var cutoffDate = DateTime.Today.AddDays(-Days);
             
-            int inactiveVehicles = 0;
+            var inactiveVehicleItems = new List<RecoveryItem>();
             
             foreach (var vehicle in allVehicles)
             {
@@ -72,17 +72,23 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
                 
                 if (!hasRecentTransaction)
                 {
-                    // This vehicle had no transactions in the specified period
-                    inactiveVehicles++;
-                    
                     // Find the last transaction to show when it was
                     var lastVoucher = vehicleVouchers
                         .OrderByDescending(v => v.Date)
                         .ThenByDescending(v => v.VoucherId)
                         .FirstOrDefault();
                     
+                    // Get current balance for this vehicle
+                    var currentBalance = await _dataService.Vehicles.GetVehicleBalanceAsync(vehicle.VehicleId);
+                    
+                    // Skip vehicles with zero or negative balance
+                    if (currentBalance <= 0)
+                        continue;
+                    
                     string transactionStatus;
                     int daysSinceLastTransaction;
+                    decimal lastAmount = 0;
+                    DateTime? lastDate = null;
                     
                     if (lastVoucher == null)
                     {
@@ -95,34 +101,98 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
                         // Last transaction was before cutoff date
                         daysSinceLastTransaction = (int)(DateTime.Today - lastVoucher.Date).TotalDays;
                         string transactionType = lastVoucher.DrCr == "C" ? "credit" : "debit";
-                        transactionStatus = $"{daysSinceLastTransaction} days since last {transactionType} on {lastVoucher.Date:dd/MM/yyyy}";
+                        transactionStatus = $"{daysSinceLastTransaction} days since last {transactionType}";
+                        lastAmount = lastVoucher.Amount;
+                        lastDate = lastVoucher.Date;
                     }
                     
-                    RecoveryItems.Add(new RecoveryItem
+                    // Extract vehicle group prefix (e.g., "UP-25" from "UP-25C-1234")
+                    var groupPrefix = ExtractVehicleGroupPrefix(vehicle.VehicleNumber);
+                    
+                    inactiveVehicleItems.Add(new RecoveryItem
                     {
                         VehicleNumber = vehicle.VehicleNumber,
                         Description = vehicle.Description ?? "-",
+                        LastAmount = lastAmount,
+                        LastDate = lastDate,
+                        RemainingBalance = currentBalance,
                         CreditStatus = transactionStatus,
                         HasCredits = lastVoucher != null,
-                        DaysSinceLastCredit = daysSinceLastTransaction
+                        DaysSinceLastCredit = daysSinceLastTransaction,
+                        IsGroupHeader = false,
+                        GroupPrefix = groupPrefix
                     });
                 }
             }
             
-            // Sort by days since last transaction (descending - most urgent first)
-            var sortedItems = RecoveryItems.OrderByDescending(x => x.DaysSinceLastCredit).ToList();
-            RecoveryItems.Clear();
-            foreach (var item in sortedItems)
+            // Group vehicles by prefix and create grouped display
+            var groupedVehicles = inactiveVehicleItems
+                .GroupBy(v => v.GroupPrefix)
+                .OrderBy(g => g.Key)
+                .ToList();
+            
+            foreach (var group in groupedVehicles)
             {
-                RecoveryItems.Add(item);
+                // Add group header if there are multiple vehicles with same prefix
+                if (group.Count() > 1)
+                {
+                    RecoveryItems.Add(new RecoveryItem
+                    {
+                        VehicleNumber = $"═══ {group.Key} VEHICLES ═══",
+                        Description = string.Empty,
+                        LastAmount = 0,
+                        LastDate = null,
+                        RemainingBalance = 0,
+                        CreditStatus = $"{group.Count()} vehicles in this group",
+                        HasCredits = false,
+                        DaysSinceLastCredit = 0,
+                        IsGroupHeader = true,
+                        GroupPrefix = group.Key
+                    });
+                }
+                
+                // Add vehicles in this group, sorted by days since last transaction
+                var sortedGroupVehicles = group.OrderByDescending(x => x.DaysSinceLastCredit).ToList();
+                foreach (var vehicle in sortedGroupVehicles)
+                {
+                    RecoveryItems.Add(vehicle);
+                }
             }
             
-            TotalVehicles = inactiveVehicles;
-            StatusMessage = inactiveVehicles > 0 
-                ? $"Found {inactiveVehicles} vehicles with no debit/credit transactions in the last {Days} days"
-                : $"All vehicles had transactions within the last {Days} days";
+            TotalVehicles = inactiveVehicleItems.Count;
+            StatusMessage = TotalVehicles > 0 
+                ? $"Found {TotalVehicles} vehicles with positive balance and no transactions in the last {Days} days (grouped by vehicle type)"
+                : $"No vehicles found with positive balance and no transactions in the last {Days} days";
                 
         }, "Generating recovery statement...");
+    }
+
+    /// <summary>
+    /// Extracts vehicle group prefix from vehicle number (e.g., "UP-25" from "UP-25C-1234")
+    /// </summary>
+    private string ExtractVehicleGroupPrefix(string vehicleNumber)
+    {
+        if (string.IsNullOrEmpty(vehicleNumber))
+            return "OTHER";
+            
+        // Look for patterns like UP-25, WB-23, etc.
+        // Extract state code and first number group
+        var parts = vehicleNumber.Split('-');
+        if (parts.Length >= 2)
+        {
+            var statePart = parts[0]; // e.g., "UP"
+            var numberPart = parts[1]; // e.g., "25C" or "23B"
+            
+            // Extract just the number from the second part
+            var numbers = new string(numberPart.Where(char.IsDigit).ToArray());
+            if (!string.IsNullOrEmpty(numbers))
+            {
+                return $"{statePart}-{numbers}"; // e.g., "UP-25", "WB-23"
+            }
+        }
+        
+        // Fallback: use first 5 characters or the whole string if shorter
+        return vehicleNumber.Length > 5 ? vehicleNumber.Substring(0, 5) : vehicleNumber;
     }
 
     /// <summary>
@@ -133,7 +203,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
     {
         RecoveryItems.Clear();
         TotalVehicles = 0;
-        StatusMessage = "Enter number of days and click Generate to find vehicles with no debit/credit transactions in that period";
+        StatusMessage = "Enter number of days and click Generate to find vehicles with positive balance and no transactions in that period";
     }
 
     /// <summary>
@@ -150,33 +220,40 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
 
         try
         {
-            // Convert RecoveryItems to a format suitable for CSV export
-            var exportData = RecoveryItems.Select(item => new
-            {
-                VehicleNumber = item.VehicleNumber,
-                Description = item.Description,
-                TransactionStatus = item.CreditStatus,
-                DaysSinceLastTransaction = item.DaysSinceLastCredit == 9999 ? "Never" : item.DaysSinceLastCredit.ToString()
-            }).ToList();
-
-            // Create a temporary file name
+            // Get application directory
+            var appDirectory = AppContext.BaseDirectory;
+            
+            // Create file name
             var fileName = $"Recovery_Statement_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
-            var filePath = Path.Combine(Path.GetTempPath(), fileName);
+            var filePath = Path.Combine(appDirectory, fileName);
 
             // Write CSV
             using (var writer = new StreamWriter(filePath))
             {
                 // Header
-                writer.WriteLine("Vehicle Number,Description,Transaction Status,Days Since Last Transaction");
+                writer.WriteLine("Vehicle Type,Vehicle Number,Last Amount,Last Date,Remaining Balance,Transaction Status");
                 
                 // Data
-                foreach (var item in exportData)
+                foreach (var item in RecoveryItems)
                 {
-                    writer.WriteLine($"\"{item.VehicleNumber}\",\"{item.Description}\",\"{item.TransactionStatus}\",\"{item.DaysSinceLastTransaction}\"");
+                    if (item.IsGroupHeader)
+                    {
+                        // Group header row
+                        writer.WriteLine($"\"{item.GroupPrefix}\",\"{item.VehicleNumber}\",\"\",\"\",\"\",\"{item.CreditStatus}\"");
+                    }
+                    else
+                    {
+                        // Regular vehicle row
+                        var lastDateStr = item.LastDate?.ToString("dd/MM/yyyy") ?? "Never";
+                        var lastAmountStr = item.LastAmount == 0 ? "0.00" : item.LastAmount.ToString("F2");
+                        var balanceStr = item.RemainingBalance.ToString("F2");
+                        
+                        writer.WriteLine($"\"{item.GroupPrefix}\",\"{item.VehicleNumber}\",\"{lastAmountStr}\",\"{lastDateStr}\",\"{balanceStr}\",\"{item.CreditStatus}\"");
+                    }
                 }
             }
 
-            StatusMessage = $"Recovery statement exported to: {fileName}";
+            StatusMessage = $"Recovery statement exported to: {fileName} in application folder";
             
             // Open the folder containing the file
             System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{filePath}\"");
@@ -194,7 +271,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
         if (parameters is Company company)
         {
             _currentCompany = company;
-            StatusMessage = $"Recovery Statement for {company.Name} - Enter days to find vehicles with no transactions in that period";
+            StatusMessage = $"Recovery Statement for {company.Name} - Enter days to find vehicles with positive balance and no transactions in that period";
         }
         return Task.CompletedTask;
     }
