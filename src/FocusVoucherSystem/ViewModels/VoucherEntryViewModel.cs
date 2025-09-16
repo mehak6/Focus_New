@@ -51,6 +51,14 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     [ObservableProperty]
     private int _totalVouchers;
 
+    private DateTime _lastSelectedDate = DateTime.Today;
+
+    [ObservableProperty]
+    private DateTime _selectedDate = DateTime.Today;
+
+    [ObservableProperty]
+    private decimal? _enteredAmount;
+
     public VoucherEntryViewModel(DataService dataService) : base(dataService)
     {
         InitializeNewVoucher();
@@ -105,7 +113,7 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     {
         CurrentVoucher = new Voucher
         {
-            Date = DateTime.Today,
+            Date = _lastSelectedDate,
             DrCr = "D",
             Amount = 0m,
             CompanyId = CurrentCompany?.CompanyId ?? 0,
@@ -113,6 +121,8 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             // VoucherNumber defaults to 0 and will be set by SetNextVoucherNumberAsync
         };
 
+        SelectedDate = _lastSelectedDate;
+        EnteredAmount = null; // Start with blank amount field
         SelectedVehicle = null;
         VehicleSearchText = string.Empty;
         UpdateVehicleFilter();
@@ -179,7 +189,7 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             return Task.FromResult(false);
         }
 
-        // Clean validation - vehicle must be selected from existing ones
+        // Simple vehicle validation
         if (SelectedVehicle == null)
         {
             if (!string.IsNullOrWhiteSpace(VehicleSearchText))
@@ -188,7 +198,7 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             }
             else
             {
-                StatusMessage = "❌ Please select a vehicle from the dropdown or search for an existing one.";
+                StatusMessage = "❌ Please select a vehicle.";
             }
             return Task.FromResult(false);
         }
@@ -205,7 +215,7 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             return Task.FromResult(false);
         }
 
-        StatusMessage = $"✅ Saving voucher - Amount: ₹{CurrentVoucher.Amount:N2}, Vehicle: {SelectedVehicle.VehicleNumber}";
+        StatusMessage = $"✅ Validation successful - Ready to save voucher #{CurrentVoucher.VoucherNumber}: ₹{CurrentVoucher.Amount:N2} for {SelectedVehicle.DisplayName}";
         return Task.FromResult(true);
     }
     
@@ -216,10 +226,33 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     /// Creates a new voucher (F2)
     /// </summary>
     [RelayCommand]
-    private void NewVoucher()
+    private async Task NewVoucher()
     {
+        // Store current voucher info before initializing new one
+        var currentVoucherNumber = CurrentVoucher?.VoucherNumber ?? 0;
+        var isCurrentVoucherUnsaved = CurrentVoucher?.VoucherId == 0;
+
         InitializeNewVoucher();
-        _ = SetNextVoucherNumberAsync();
+
+        if (isCurrentVoucherUnsaved && currentVoucherNumber > 0)
+        {
+            // Manually increment the voucher number since the previous one wasn't saved
+            var nextNumber = currentVoucherNumber + 1;
+            if (CurrentCompany != null)
+            {
+                // Update the company's in-memory last voucher number to reflect the increment
+                CurrentCompany.LastVoucherNumber = Math.Max(CurrentCompany.LastVoucherNumber, nextNumber - 1);
+            }
+            if (CurrentVoucher != null)
+            {
+                CurrentVoucher.VoucherNumber = nextNumber;
+            }
+            StatusMessage = $"Ready for voucher #{nextNumber}";
+        }
+        else
+        {
+            await SetNextVoucherNumberAsync();
+        }
     }
 
     /// <summary>
@@ -325,12 +358,13 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     private bool CanDeleteVoucher() => SelectedVoucher != null;
 
     /// <summary>
-    /// Refreshes the voucher data
+    /// Refreshes the voucher and vehicle data
     /// </summary>
     [RelayCommand]
     private async Task RefreshData()
     {
         await LoadDataAsync();
+        StatusMessage = "Data refreshed successfully - vehicles and vouchers reloaded";
     }
 
     /// <summary>
@@ -427,10 +461,17 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             // Load the selected voucher into the form
             CurrentVoucher = value.Clone(value.VoucherNumber);
             CurrentVoucher.VoucherId = value.VoucherId; // Preserve ID for updates
-            
+
             // Set the selected vehicle
             SelectedVehicle = Vehicles.FirstOrDefault(v => v.VehicleId == value.VehicleId);
-            
+
+            // Update selected date to match the voucher's date
+            SelectedDate = value.Date;
+            _lastSelectedDate = value.Date;
+
+            // Update entered amount to match the voucher's amount
+            EnteredAmount = value.Amount;
+
             StatusMessage = $"Loaded voucher {value.VoucherNumber} for editing";
             IsVoucherNumberReadOnly = true;
         }
@@ -453,30 +494,68 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
         }
     }
 
+    /// <summary>
+    /// Handles current voucher changes to persist date selection
+    /// </summary>
+    partial void OnCurrentVoucherChanged(Voucher value)
+    {
+        if (value != null && value.Date != default(DateTime))
+        {
+            _lastSelectedDate = value.Date;
+            SelectedDate = value.Date;
+        }
+    }
+
+    /// <summary>
+    /// Handles date picker changes to update voucher date and persist selection
+    /// </summary>
+    partial void OnSelectedDateChanged(DateTime value)
+    {
+        if (CurrentVoucher != null)
+        {
+            CurrentVoucher.Date = value;
+            _lastSelectedDate = value;
+        }
+    }
+
+    /// <summary>
+    /// Handles amount entry changes to update voucher amount
+    /// </summary>
+    partial void OnEnteredAmountChanged(decimal? value)
+    {
+        if (CurrentVoucher != null)
+        {
+            CurrentVoucher.Amount = value ?? 0m;
+        }
+    }
+
     partial void OnVehicleSearchTextChanged(string value)
     {
         UpdateVehicleFilter();
         ShowVehicleSuggestions = !string.IsNullOrWhiteSpace(VehicleSearchText);
-        
-        // Check if entered text matches an existing vehicle
-        var exactMatch = Vehicles.FirstOrDefault(v => 
-            string.Equals(v.VehicleNumber, VehicleSearchText?.Trim(), StringComparison.OrdinalIgnoreCase));
-        
-        if (exactMatch != null)
-        {
-            SelectedVehicle = exactMatch;
-            StatusMessage = $"Selected existing vehicle: {exactMatch.DisplayName}";
-        }
-        else if (!string.IsNullOrWhiteSpace(VehicleSearchText))
-        {
-            // Clear selected vehicle if text doesn't match any existing vehicle
-            SelectedVehicle = null;
-            StatusMessage = $"Type '{VehicleSearchText?.Trim()}' and press Enter to create new vehicle";
-        }
-        else
+
+        var searchTerm = VehicleSearchText?.Trim();
+
+        if (string.IsNullOrWhiteSpace(searchTerm))
         {
             SelectedVehicle = null;
             StatusMessage = "Ready to enter vouchers";
+            return;
+        }
+
+        // Simple exact match only - if vehicle exists, select it immediately
+        var exactMatch = Vehicles.FirstOrDefault(v =>
+            string.Equals(v.VehicleNumber?.Trim(), searchTerm, StringComparison.OrdinalIgnoreCase));
+
+        if (exactMatch != null)
+        {
+            SelectedVehicle = exactMatch;
+            StatusMessage = $"Vehicle selected: {exactMatch.DisplayName}";
+        }
+        else
+        {
+            // Don't clear SelectedVehicle immediately - user might still be typing
+            StatusMessage = $"Typing '{searchTerm}'...";
         }
     }
 
@@ -578,12 +657,13 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     private void SelectVehicle(Vehicle vehicle)
     {
         SelectedVehicle = vehicle;
-        VehicleSearchText = vehicle.DisplayName;
+        VehicleSearchText = vehicle.VehicleNumber; // Use vehicle number instead of DisplayName
         ShowVehicleSuggestions = false;
+        StatusMessage = $"Vehicle selected: {vehicle.DisplayName}";
     }
 
     /// <summary>
-    /// Handles Enter key press in vehicle search box - creates new vehicle if needed
+    /// Handles Enter key press in vehicle search box - simple vehicle selection
     /// </summary>
     [RelayCommand]
     private void HandleVehicleSearchEnter()
@@ -591,38 +671,36 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
         if (string.IsNullOrWhiteSpace(VehicleSearchText) || CurrentCompany == null)
             return;
 
-        var vehicleNumber = VehicleSearchText.Trim();
-        
-        // Check if there's an exact match first
-        var exactMatch = Vehicles.FirstOrDefault(v => 
-            string.Equals(v.VehicleNumber, vehicleNumber, StringComparison.OrdinalIgnoreCase));
-        
+        var searchTerm = VehicleSearchText.Trim();
+
+        // Simple: if we already have a selected vehicle, confirm it
+        if (SelectedVehicle != null)
+        {
+            StatusMessage = $"Vehicle confirmed: {SelectedVehicle.DisplayName}";
+            ShowVehicleSuggestions = false;
+            return;
+        }
+
+        // Try to find exact match
+        var exactMatch = Vehicles.FirstOrDefault(v =>
+            string.Equals(v.VehicleNumber?.Trim(), searchTerm, StringComparison.OrdinalIgnoreCase));
+
         if (exactMatch != null)
         {
             SelectVehicle(exactMatch);
             return;
         }
 
-        // Check suggestions
+        // Check if first filtered vehicle is valid
         if (FilteredVehicles.Any() && !FilteredVehicles.First().VehicleNumber.StartsWith("+ Create"))
         {
             SelectVehicle(FilteredVehicles.First());
             return;
         }
 
-        // Vehicle not found - guide user to Vehicle Management
-        StatusMessage = $"❌ Vehicle '{vehicleNumber}' not found. Go to VEHICLE MANAGEMENT (F1) to create it first, then return here.";
-        
-        // Show suggestion in filtered vehicles for user guidance
-        var suggestionVehicle = new Vehicle 
-        { 
-            VehicleNumber = $"➡️ Create '{vehicleNumber}' in Vehicle Management", 
-            Description = "Press F1 to go to Vehicle Management" 
-        };
-        
-        FilteredVehicles.Clear();
-        FilteredVehicles.Add(suggestionVehicle);
-        ShowVehicleSuggestions = true;
+        // Vehicle not found
+        StatusMessage = $"Vehicle '{searchTerm}' not found. Go to VEHICLE MANAGEMENT (F1) to create it first.";
+        SelectedVehicle = null;
     }
 
 
@@ -641,17 +719,28 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             CurrentCompany = company;
             System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: CurrentCompany set");
 
+            // Always refresh data when navigating to VoucherEntry (including when returning from other views)
             await LoadDataAsync();
             System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: LoadDataAsync completed");
 
-            // Initialize a new voucher with the company set
-            InitializeNewVoucher();
-            await SetNextVoucherNumberAsync();
-            System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: Voucher initialization completed");
+            // Initialize a new voucher with the company set only if we don't have a current voucher being edited
+            if (CurrentVoucher?.VoucherId == 0 || CurrentVoucher == null)
+            {
+                InitializeNewVoucher();
+                await SetNextVoucherNumberAsync();
+                System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: Voucher initialization completed");
+            }
+        }
+        else if (CurrentCompany != null)
+        {
+            // No parameters passed but we have a current company - refresh data (e.g., returning from Vehicle Management)
+            System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: No Company parameter but CurrentCompany exists - refreshing data");
+            await LoadDataAsync();
+            System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: Data refresh completed");
         }
         else
         {
-            System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: No Company parameter found");
+            System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: No Company parameter and no CurrentCompany found");
         }
 
         System.Diagnostics.Debug.WriteLine($"VoucherEntryViewModel.OnNavigatedToAsync: Completed");

@@ -93,7 +93,10 @@
                             CommandParameter="{Binding ElementName=SearchVoucherTextBox, Path=Text}"
                             Style="{StaticResource SecondaryButtonStyle}" Height="30" Margin="0,0,10,0"/>
                     <Button Content="RESET" Command="{Binding ResetViewCommand}"
-                            Style="{StaticResource SecondaryButtonStyle}" Height="30"/>
+                            Style="{StaticResource SecondaryButtonStyle}" Height="30" Margin="0,0,10,0"/>
+                    <Button Content="REFRESH" Command="{Binding RefreshDataCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}" Height="30"
+                            ToolTip="Refresh vehicle and voucher data"/>
                 </StackPanel>
             </Grid>
         </Border>
@@ -125,7 +128,7 @@
                              Style="{StaticResource InputStyle}" IsReadOnly="{Binding IsVoucherNumberReadOnly}"/>
                     
                     <TextBlock Grid.Column="3" Text="Date:" Style="{StaticResource LabelStyle}"/>
-                    <DatePicker Grid.Column="4" SelectedDate="{Binding CurrentVoucher.Date}" Height="30" VerticalContentAlignment="Center"/>
+                    <DatePicker Grid.Column="4" SelectedDate="{Binding SelectedDate}" Height="30" VerticalContentAlignment="Center"/>
                     
                     <TextBlock Grid.Column="6" Text="Vehicle:" Style="{StaticResource LabelStyle}"/>
                     <Grid Grid.Column="7">
@@ -177,7 +180,7 @@
                     </Grid.ColumnDefinitions>
                     
                     <TextBlock Grid.Column="0" Text="Amount:" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Grid.Column="1" Text="{Binding CurrentVoucher.Amount, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}" 
+                    <TextBox Grid.Column="1" Text="{Binding EnteredAmount, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"
                              Style="{StaticResource InputStyle}" TextAlignment="Right"/>
                     
                     <TextBlock Grid.Column="3" Text="Dr/Cr:" Style="{StaticResource LabelStyle}"/>
