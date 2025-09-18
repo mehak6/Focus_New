@@ -16,6 +16,7 @@ public static class Converters
     public static readonly IValueConverter VehicleBalanceConverter = new VehicleBalanceConverter();
     public static readonly IValueConverter LastTransactionDateConverter = new LastTransactionDateConverter();
     public static readonly IValueConverter INRCurrencyConverter = new INRCurrencyConverter();
+    public static readonly IValueConverter DecimalToBalanceTypeConverter = new DecimalToBalanceTypeConverter();
 }
 
 /// <summary>
@@ -191,5 +192,26 @@ public class INRCurrencyConverter : IValueConverter
         // Format with Indian numbering system (lakhs, crores)
         var formattedAmount = amount.ToString("N2", new CultureInfo("en-IN"));
         return $"₹{formattedAmount}";
+    }
+}
+
+/// <summary>
+/// Converter for determining balance type (Dr/Cr) from decimal value
+/// </summary>
+public class DecimalToBalanceTypeConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is decimal amount)
+        {
+            return amount >= 0 ? "D" : "C";
+        }
+
+        return "D"; // Default to Debit
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
     }
 }
