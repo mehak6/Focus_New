@@ -184,19 +184,35 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                     var vouchers = result as List<Voucher> ?? result.ToList();
                     var count = vouchers.Count;
 
-                    // Process vouchers in background thread
+                    // Process vouchers in background thread with day-wise totals
+                    decimal totalDebits = 0m, totalCredits = 0m;
                     decimal running = 0m;
-                    decimal debits = 0m, credits = 0m;
-                    decimal runningDebits = 0m, runningCredits = 0m;
                     var tempRows = new List<ReportRow>(count + count / 10); // Pre-allocate with estimated size
                     DateTime? lastDate = null;
+                    decimal dayDebits = 0m, dayCredits = 0m;
 
                     // Vouchers are already sorted by SQL, no need to sort again
                     foreach (var v in vouchers)
                     {
-                        // Add spacing row when date changes (except for first entry)
+                        // When date changes, add day total row and reset day counters
                         if (lastDate.HasValue && v.Date != lastDate.Value)
                         {
+                            // Add day total row
+                            var dayNet = dayDebits - dayCredits;
+                            tempRows.Add(new ReportRow
+                            {
+                                Date = lastDate.Value,
+                                VoucherNumber = 0,
+                                VehicleNumber = "DAY TOTAL",
+                                Narration = $"Total for {lastDate.Value:dd/MM/yyyy} - Dr: ₹{dayDebits:N2}, Cr: ₹{dayCredits:N2}",
+                                Amount = Math.Abs(dayNet),
+                                DrCr = dayNet >= 0 ? "D" : "C",
+                                RunningBalance = running,
+                                DebitBalance = dayDebits,
+                                CreditBalance = dayCredits
+                            });
+
+                            // Add spacing row
                             tempRows.Add(new ReportRow
                             {
                                 Date = DateTime.MinValue, // Special marker for spacing row
@@ -209,20 +225,24 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                                 DebitBalance = 0,
                                 CreditBalance = 0
                             });
+
+                            // Reset day counters
+                            dayDebits = 0m;
+                            dayCredits = 0m;
                         }
 
                         var amount = v.Amount;
-                        if (v.DrCr == "D") 
-                        { 
-                            running += amount; 
-                            debits += amount;
-                            runningDebits += amount;
+                        if (v.DrCr == "D")
+                        {
+                            running += amount;
+                            totalDebits += amount;
+                            dayDebits += amount;
                         }
-                        else 
-                        { 
-                            running -= amount; 
-                            credits += amount;
-                            runningCredits += amount;
+                        else
+                        {
+                            running -= amount;
+                            totalCredits += amount;
+                            dayCredits += amount;
                         }
 
                         tempRows.Add(new ReportRow
@@ -234,14 +254,32 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                             Amount = v.Amount,
                             DrCr = v.DrCr,
                             RunningBalance = running,
-                            DebitBalance = runningDebits,
-                            CreditBalance = runningCredits
+                            DebitBalance = dayDebits,
+                            CreditBalance = dayCredits
                         });
 
                         lastDate = v.Date;
                     }
 
-                    return (tempRows, debits, credits, count);
+                    // Add final day total row if we processed any vouchers
+                    if (lastDate.HasValue)
+                    {
+                        var finalDayNet = dayDebits - dayCredits;
+                        tempRows.Add(new ReportRow
+                        {
+                            Date = lastDate.Value,
+                            VoucherNumber = 0,
+                            VehicleNumber = "DAY TOTAL",
+                            Narration = $"Total for {lastDate.Value:dd/MM/yyyy} - Dr: ₹{dayDebits:N2}, Cr: ₹{dayCredits:N2}",
+                            Amount = Math.Abs(finalDayNet),
+                            DrCr = finalDayNet >= 0 ? "D" : "C",
+                            RunningBalance = running,
+                            DebitBalance = dayDebits,
+                            CreditBalance = dayCredits
+                        });
+                    }
+
+                    return (tempRows, totalDebits, totalCredits, count);
                 });
 
                 StatusMessage = $"📊 Retrieved {voucherCount} vouchers from database...";

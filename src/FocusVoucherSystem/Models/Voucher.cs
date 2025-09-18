@@ -6,7 +6,7 @@ namespace FocusVoucherSystem.Models;
 /// <summary>
 /// Represents a voucher entry in the system
 /// </summary>
-public partial class Voucher : ObservableObject
+public partial class Voucher : ObservableValidator
 {
     /// <summary>
     /// Unique identifier for the voucher
@@ -46,7 +46,8 @@ public partial class Voucher : ObservableObject
     [Required]
     [StringLength(1)]
     [RegularExpression("^[DC]$", ErrorMessage = "DrCr must be either 'D' or 'C'")]
-    public string DrCr { get; set; } = "D";
+    [ObservableProperty]
+    private string _drCr = "D";
 
     /// <summary>
     /// Optional narration/description of the transaction
@@ -99,6 +100,12 @@ public partial class Voucher : ObservableObject
     /// Gets a formatted display string for the amount with Dr/Cr indicator in INR format
     /// </summary>
     public string FormattedAmount => $"₹{Amount.ToString("N2", System.Globalization.CultureInfo.CreateSpecificCulture("en-IN"))} {DrCr}";
+
+    /// <summary>
+    /// Gets a formatted display string for the running balance with Dr/Cr indicator in INR format
+    /// </summary>
+    public string FormattedRunningBalance =>
+        $"₹{Math.Abs(RunningBalance).ToString("N2", System.Globalization.CultureInfo.CreateSpecificCulture("en-IN"))} {(RunningBalance >= 0 ? "D" : "C")}";
 
     /// <summary>
     /// Gets a short description for display purposes

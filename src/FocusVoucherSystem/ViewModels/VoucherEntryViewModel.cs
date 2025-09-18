@@ -52,6 +52,7 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     private int _totalVouchers;
 
     private DateTime _lastSelectedDate = DateTime.Today;
+    private string _lastSelectedDrCr = "D"; // Remember last Dr/Cr selection
 
     [ObservableProperty]
     private DateTime _selectedDate = DateTime.Today;
@@ -114,7 +115,7 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
         CurrentVoucher = new Voucher
         {
             Date = _lastSelectedDate,
-            DrCr = "D",
+            DrCr = _lastSelectedDrCr, // Use remembered Dr/Cr selection
             Amount = 0m,
             CompanyId = CurrentCompany?.CompanyId ?? 0,
             VehicleId = 0
@@ -232,6 +233,12 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
         var currentVoucherNumber = CurrentVoucher?.VoucherNumber ?? 0;
         var isCurrentVoucherUnsaved = CurrentVoucher?.VoucherId == 0;
 
+        // Remember the Dr/Cr selection from current voucher
+        if (CurrentVoucher != null && !string.IsNullOrEmpty(CurrentVoucher.DrCr))
+        {
+            _lastSelectedDrCr = CurrentVoucher.DrCr;
+        }
+
         InitializeNewVoucher();
 
         if (isCurrentVoucherUnsaved && currentVoucherNumber > 0)
@@ -268,8 +275,9 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
         {
             
             Voucher savedVoucher;
+            bool isNewVoucher = CurrentVoucher.VoucherId == 0;
 
-            if (CurrentVoucher.VoucherId == 0)
+            if (isNewVoucher)
             {
                 // New voucher
                 savedVoucher = await _dataService.Vouchers.AddAsync(CurrentVoucher);
@@ -307,12 +315,20 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             // Load fresh vehicle data for the saved voucher
             savedVoucher.Vehicle = await _dataService.Vehicles.GetByIdAsync(savedVoucher.VehicleId);
 
-            // Prepare for next voucher after successful save
-            InitializeNewVoucher();
-            await SetNextVoucherNumberAsync();
+            // Only prepare for next voucher if we just created a new voucher
+            // Don't reset the form when updating an existing voucher
+            if (isNewVoucher)
+            {
+                // Remember the Dr/Cr selection for next voucher
+                _lastSelectedDrCr = CurrentVoucher.DrCr;
 
-            // Ask view to focus the vehicle search for speedy entry
-            FocusVehicleSearchRequested?.Invoke();
+                // Prepare for next voucher after successful save of new voucher
+                InitializeNewVoucher();
+                await SetNextVoucherNumberAsync();
+
+                // Ask view to focus the vehicle search for speedy entry
+                FocusVehicleSearchRequested?.Invoke();
+            }
 
         }, "Saving voucher...");
     }

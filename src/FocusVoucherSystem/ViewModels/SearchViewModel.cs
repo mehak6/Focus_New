@@ -425,11 +425,7 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(CurrentVoucher.Narration))
-            {
-                StatusMessage = "Please enter narration";
-                return;
-            }
+            // Narration is optional for updates - allow empty narration
 
             await ExecuteAsync(async () =>
             {
@@ -480,13 +476,13 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     /// </summary>
     private bool CanUpdateVoucher()
     {
-        return IsVoucherEditMode && 
-               CurrentVoucher != null && 
+        return IsVoucherEditMode &&
+               CurrentVoucher != null &&
                CurrentVoucher.VoucherId > 0 &&
                SelectedVehicleForEdit != null &&
                CurrentVoucher.Amount > 0 &&
-               !string.IsNullOrWhiteSpace(CurrentVoucher.DrCr) &&
-               !string.IsNullOrWhiteSpace(CurrentVoucher.Narration);
+               !string.IsNullOrWhiteSpace(CurrentVoucher.DrCr);
+               // Narration is optional - removed the narration check
     }
 
     /// <summary>
