@@ -10,16 +10,20 @@ namespace FocusVoucherSystem.Services;
 public class DataService : IDisposable
 {
     private readonly DatabaseConnection _dbConnection;
+    private readonly DatabaseBackupService _backupService;
 
     public DataService(string? databasePath = null)
     {
         _dbConnection = new DatabaseConnection(databasePath);
-        
+
         // Initialize repositories
         Companies = new CompanyRepository(_dbConnection);
         Vehicles = new VehicleRepository(_dbConnection);
         Vouchers = new VoucherRepository(_dbConnection);
         Settings = new SettingRepository(_dbConnection);
+
+        // Initialize automatic backup service
+        _backupService = new DatabaseBackupService();
     }
 
     /// <summary>
@@ -152,8 +156,22 @@ public class DataService : IDisposable
         };
     }
 
+    /// <summary>
+    /// Forces an immediate database backup
+    /// </summary>
+    public void ForceBackup()
+    {
+        _backupService?.ForceBackup();
+    }
+
+    /// <summary>
+    /// Gets the backup service for advanced backup operations
+    /// </summary>
+    public DatabaseBackupService BackupService => _backupService;
+
     public void Dispose()
     {
+        _backupService?.Dispose();
         _dbConnection?.Dispose();
     }
 }

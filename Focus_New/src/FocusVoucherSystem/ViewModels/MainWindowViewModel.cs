@@ -36,6 +36,12 @@ public partial class MainWindowViewModel : BaseViewModel, INavigationAware
     [ObservableProperty]
     private string _selectedTab = "VoucherEntry";
 
+    [ObservableProperty]
+    private string _backupStatus = "Auto-backup: Active (every 10 min)";
+
+    [ObservableProperty]
+    private string _lastBackupTime = "Starting...";
+
     public MainWindowViewModel(DataService dataService, NavigationService navigationService, HotkeyService hotkeyService) 
         : base(dataService)
     {
@@ -384,6 +390,19 @@ public partial class MainWindowViewModel : BaseViewModel, INavigationAware
     private void ExportData()
     {
         StatusMessage = "Export Data - Coming Soon";
+    }
+
+    [RelayCommand]
+    private async Task ForceBackup()
+    {
+        await ExecuteAsync(() =>
+        {
+            _dataService.ForceBackup();
+            var timestamp = DateTime.Now.ToString("HH:mm:ss");
+            LastBackupTime = $"Last backup: {timestamp}";
+            StatusMessage = $"Database backup created at {timestamp}";
+            return Task.CompletedTask;
+        }, "Creating backup...");
     }
 
     [RelayCommand]
