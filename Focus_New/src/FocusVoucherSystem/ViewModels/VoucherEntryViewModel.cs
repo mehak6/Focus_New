@@ -51,11 +51,11 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     [ObservableProperty]
     private int _totalVouchers;
 
-    private DateTime _lastSelectedDate = DateTime.Today;
+    private static DateTime _lastSelectedDate = DateTime.Today; // Make static to persist across instances
     private string _lastSelectedDrCr = "D"; // Remember last Dr/Cr selection
 
     [ObservableProperty]
-    private DateTime _selectedDate = DateTime.Today;
+    private DateTime _selectedDate = _lastSelectedDate; // Initialize with preserved date
 
     [ObservableProperty]
     private decimal? _enteredAmount;
