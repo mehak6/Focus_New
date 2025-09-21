@@ -1,0 +1,306 @@
+<Window x:Class="FocusVoucherSystem.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FocusVoucherSystem"
+        mc:Ignorable="d"
+        Title="{Binding Title}" 
+        Height="800" 
+        Width="1200"
+        WindowState="Maximized"
+        KeyDown="Window_KeyDown">
+    
+    <Window.Resources>
+        <!-- Global Styles -->
+        <Style x:Key="TabButtonStyle" TargetType="Button">
+            <Setter Property="Padding" Value="20,10"/>
+            <Setter Property="Margin" Value="3,0"/>
+            <Setter Property="Background" Value="#f8f9fa"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#dee2e6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#495057"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Border"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter x:Name="ContentPresenter"
+                                            Content="{TemplateBinding Content}"
+                                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center"
+                                            Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#e9ecef"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#adb5bd"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Border" Property="Background" Value="#dee2e6"/>
+                                <Setter TargetName="Border" Property="BorderBrush" Value="#6c757d"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        
+        <Style x:Key="StatusBarStyle" TargetType="StatusBar">
+            <Setter Property="Background" Value="#2d3748"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Height" Value="30"/>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel>
+        <!-- Top Menu Bar -->
+        <Menu DockPanel.Dock="Top" Height="32">
+            <Menu.Resources>
+                <!-- Menu Style -->
+                <Style TargetType="{x:Type Menu}">
+                    <Setter Property="Background" Value="#2d3748"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Style>
+
+                <!-- Top Level MenuItem Style -->
+                <Style x:Key="TopLevelMenuItemStyle" TargetType="{x:Type MenuItem}">
+                    <Setter Property="Background" Value="Transparent"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="FontSize" Value="13"/>
+                    <Setter Property="FontWeight" Value="SemiBold"/>
+                    <Setter Property="Padding" Value="12,6"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type MenuItem}">
+                                <Border x:Name="Border"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}">
+                                    <ContentPresenter ContentSource="Header"
+                                                    Margin="{TemplateBinding Padding}"
+                                                    RecognizesAccessKey="True"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="#4299e1"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="#3182ce"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                    <Trigger Property="IsSubmenuOpen" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="#4299e1"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+
+                <!-- Sub MenuItem Style -->
+                <Style x:Key="SubMenuItemStyle" TargetType="{x:Type MenuItem}">
+                    <Setter Property="Background" Value="White"/>
+                    <Setter Property="Foreground" Value="#2d3748"/>
+                    <Setter Property="FontSize" Value="12"/>
+                    <Setter Property="Padding" Value="10,6"/>
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="{x:Type MenuItem}">
+                                <Border x:Name="Border"
+                                        Background="{TemplateBinding Background}"
+                                        BorderBrush="{TemplateBinding BorderBrush}"
+                                        BorderThickness="{TemplateBinding BorderThickness}">
+                                    <ContentPresenter ContentSource="Header"
+                                                    Margin="{TemplateBinding Padding}"
+                                                    RecognizesAccessKey="True"/>
+                                </Border>
+                                <ControlTemplate.Triggers>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="#e2e8f0"/>
+                                        <Setter Property="Foreground" Value="#2d3748"/>
+                                    </Trigger>
+                                    <Trigger Property="IsPressed" Value="True">
+                                        <Setter TargetName="Border" Property="Background" Value="#cbd5e0"/>
+                                        <Setter Property="Foreground" Value="#2d3748"/>
+                                    </Trigger>
+                                </ControlTemplate.Triggers>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+                
+                <!-- Default submenu item styling to ensure visibility -->
+                <Style TargetType="{x:Type MenuItem}">
+                    <!-- Default for submenu items -->
+                    <Setter Property="Background" Value="White"/>
+                    <Setter Property="Foreground" Value="#2d3748"/>
+                    <Setter Property="Padding" Value="10,6"/>
+                    
+                    <Style.Triggers>
+                        <!-- Keep top-level items white on dark bar -->
+                        <Trigger Property="Role" Value="TopLevelHeader">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="Padding" Value="12,6"/>
+                        </Trigger>
+                        <Trigger Property="Role" Value="TopLevelItem">
+                            <Setter Property="Background" Value="Transparent"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="Padding" Value="12,6"/>
+                        </Trigger>
+                        
+                        <!-- Hover/selection for submenu items -->
+                        <Trigger Property="IsHighlighted" Value="True">
+                            <Setter Property="Background" Value="#e9ecef"/>
+                            <Setter Property="Foreground" Value="#111827"/>
+                        </Trigger>
+                        
+                        <!-- Disabled state -->
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="#9aa0a6"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+            </Menu.Resources>
+
+            <!-- Set menu style -->
+            <Menu.Style>
+                <Style TargetType="{x:Type Menu}">
+                    <Setter Property="Background" Value="#2d3748"/>
+                    <Setter Property="Foreground" Value="White"/>
+                </Style>
+            </Menu.Style>
+
+            <MenuItem Header="_File">
+                <MenuItem Header="_Select Company..." Command="{Binding OpenCompanySelectionCommand}" ToolTip="Select or create a company"/>
+                <Separator/>
+                <MenuItem Header="E_xit" Command="{Binding ExitCommand}" ToolTip="Exit the application" InputGestureText="Alt+F4"/>
+            </MenuItem>
+            <MenuItem Header="_View">
+                <MenuItem Header="_Refresh" Command="{Binding RefreshDataCommand}" InputGestureText="F5" ToolTip="Refresh all data"/>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_Hotkey Reference" Command="{Binding ShowHotkeysCommand}" InputGestureText="F1" ToolTip="Show keyboard shortcuts"/>
+                <MenuItem Header="_About" Command="{Binding AboutCommand}" ToolTip="About this application"/>
+            </MenuItem>
+        </Menu>
+
+        <!-- Bottom Status Bar -->
+        <StatusBar DockPanel.Dock="Bottom" Style="{StaticResource StatusBarStyle}">
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusMessage}"/>
+            </StatusBarItem>
+            <StatusBarItem HorizontalAlignment="Right">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Company: " Margin="0,0,5,0"/>
+                    <TextBlock Text="{Binding CurrentCompany.Name}" FontWeight="Bold" Margin="0,0,15,0"/>
+                    <TextBlock Text="User: " Margin="0,0,5,0"/>
+                    <TextBlock Text="{Binding CurrentUser}" FontWeight="Bold"/>
+                </StackPanel>
+            </StatusBarItem>
+        </StatusBar>
+
+        <!-- Main Content Area -->
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Tab Navigation Bar -->
+            <Border Grid.Row="0" Background="#ffffff" BorderBrush="#e1e5e9" BorderThickness="0,0,0,1" Padding="15,12">
+                <StackPanel Orientation="Horizontal">
+                    <Button Content="VOUCHER ENTRY"
+                            Style="{StaticResource TabButtonStyle}"
+                            Command="{Binding NavigateToVoucherEntryCommand}"
+                            ToolTip="F2 - Add vouchers and manage entries"/>
+                    <Button Content="VEHICLE MANAGEMENT"
+                            Style="{StaticResource TabButtonStyle}"
+                            Command="{Binding NavigateToVehicleManagementCommand}"
+                            ToolTip="F1 - Manage vehicles and accounts"/>
+                    <Button Content="SEARCH"
+                            Style="{StaticResource TabButtonStyle}"
+                            Command="{Binding NavigateToSearchCommand}"
+                            ToolTip="F3 - Search vouchers by vehicle"/>
+                    <Button Content="REPORTS"
+                            Style="{StaticResource TabButtonStyle}"
+                            Command="{Binding NavigateToReportsCommand}"
+                            ToolTip="F4 - View and print reports"/>
+                    <Button Content="RECOVERY"
+                            Style="{StaticResource TabButtonStyle}"
+                            Command="{Binding NavigateToRecoveryCommand}"
+                            ToolTip="Find vehicles with no credit transactions"/>
+                    <Button Content="UTILITIES"
+                            Style="{StaticResource TabButtonStyle}"
+                            Command="{Binding NavigateToUtilitiesCommand}"
+                            ToolTip="System utilities and settings"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Content Host -->
+            <Border Grid.Row="1" Background="White" Margin="0">
+                <ContentControl x:Name="ContentHost"/>
+            </Border>
+        </Grid>
+
+        <!-- Loading Overlay -->
+        <Grid Visibility="{Binding IsBusy, Converter={x:Static local:Converters.BooleanToVisibilityConverter}}"
+              Background="#80000000">
+            <Border Background="White" 
+                    CornerRadius="10" 
+                    Padding="30"
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Center"
+                    MinWidth="250">
+                <StackPanel Orientation="Horizontal">
+                    <ProgressBar IsIndeterminate="True" Width="20" Height="20" Margin="0,0,15,0"/>
+                    <TextBlock Text="{Binding BusyMessage}" 
+                               FontSize="14" 
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Error Message -->
+        <Grid Visibility="{Binding HasError, Converter={x:Static local:Converters.BooleanToVisibilityConverter}}"
+              Background="#80000000">
+            <Border Background="#dc3545" 
+                    CornerRadius="10" 
+                    Padding="20"
+                    HorizontalAlignment="Center" 
+                    VerticalAlignment="Center"
+                    MaxWidth="500">
+                <StackPanel>
+                    <TextBlock Text="Error" 
+                               FontSize="16" 
+                               FontWeight="Bold" 
+                               Foreground="White" 
+                               Margin="0,0,0,10"/>
+                    <TextBlock Text="{Binding ErrorMessage}" 
+                               FontSize="12" 
+                               Foreground="White" 
+                               TextWrapping="Wrap"
+                               Margin="0,0,0,15"/>
+                    <Button Content="OK" 
+                            Command="{Binding ClearErrorsCommand}"
+                            Background="White"
+                            Foreground="#dc3545"
+                            Padding="20,5"
+                            HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</Window>

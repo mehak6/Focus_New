@@ -1,0 +1,135 @@
+<UserControl x:Class="FocusVoucherSystem.Views.UtilitiesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:FocusVoucherSystem"
+             mc:Ignorable="d">
+    <UserControl.Resources>
+        <local:BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="18"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#2d3748"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5,0"/>
+            <Setter Property="Background" Value="#4299e1"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3182ce"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5,0"/>
+            <Setter Property="Background" Value="#e2e8f0"/>
+            <Setter Property="Foreground" Value="#2d3748"/>
+            <Setter Property="BorderBrush" Value="#cbd5e0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        <Style x:Key="DangerButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5,0"/>
+            <Setter Property="Background" Value="#e53e3e"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#c53030"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+    </UserControl.Resources>
+    <Grid Background="White" Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="UTILITIES" Style="{StaticResource HeaderTextStyle}" FontSize="18"/>
+
+        <Border Grid.Row="1" Padding="12" Margin="0,12,0,12" BorderBrush="#e2e8f0" BorderThickness="1" Background="#f8fafc">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="220"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Text="Company:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <ComboBox Grid.Column="1" ItemsSource="{Binding Companies}" SelectedItem="{Binding SelectedCompany}" DisplayMemberPath="Name" Height="28"/>
+
+                <TextBlock Grid.Column="3" Text="Legacy Folder:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                <TextBox Grid.Column="4" Text="{Binding FolderPath}" Height="28"/>
+                <Button Grid.Column="5" Content="BROWSE..." Padding="12,4" Margin="8,0,0,0" Command="{Binding BrowseFolderCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}" Height="28"/>
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <Border Background="#f7fafc" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="15">
+                <StackPanel Orientation="Horizontal" Margin="0">
+                    <CheckBox Content="Dry run" IsChecked="{Binding DryRun}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <CheckBox Content="Create missing vehicles" IsChecked="{Binding CreateMissingVehicles}" VerticalAlignment="Center" Margin="0,0,20,0"/>
+                    <Button Content="DRY RUN" Command="{Binding DryRunImportCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}" ToolTip="Test import without making changes"/>
+                    <Button Content="RUN IMPORT" Command="{Binding RunImportCommand}" Margin="10,0,0,0"
+                            Style="{StaticResource PrimaryButtonStyle}" ToolTip="Execute the actual import"/>
+                    <Button Content="CLEAR DATA" Command="{Binding ClearDatabaseCommand}" Margin="10,0,0,0"
+                            Style="{StaticResource DangerButtonStyle}" ToolTip="Remove all company data (DANGER!)"/>
+                    <Button Content="BACKUP CSV" Command="{Binding BackupCsvCommand}" Margin="10,0,0,0"
+                            Style="{StaticResource SecondaryButtonStyle}" ToolTip="Export all vehicles and vouchers to CSV files"/>
+                    <Border Margin="20,0,0,0" VerticalAlignment="Stretch" Background="#dee2e6" Width="1"/>
+                    <TextBlock Text="{Binding StatusMessage}" VerticalAlignment="Center" Margin="20,0,0,0" FontStyle="Italic"/>
+                </StackPanel>
+            </Border>
+
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*"/>
+                    <ColumnDefinition Width="3*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Vehicles Preview -->
+                <GroupBox Header="Vehicles (Preview)" Margin="0,0,10,0">
+                    <ListBox ItemsSource="{Binding PreviewVehicles}"/>
+                </GroupBox>
+
+                <!-- Vouchers Preview -->
+                <GroupBox Grid.Column="1" Header="Vouchers (Preview)">
+                    <DataGrid ItemsSource="{Binding PreviewVouchers}" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="V.No" Binding="{Binding VNo}" Width="80"/>
+                            <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="120"/>
+                            <DataGridTextColumn Header="Vehicle" Binding="{Binding Vehicle}" Width="*"/>
+                            <DataGridTextColumn Header="Amount" Binding="{Binding Amount, StringFormat=C2}" Width="120"/>
+                            <DataGridTextColumn Header="Dr/Cr" Binding="{Binding DrCr}" Width="60"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </GroupBox>
+            </Grid>
+
+            <!-- Busy overlay -->
+            <Grid Grid.Row="2" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVis}}" Background="#80000000">
+                <Border Background="White" CornerRadius="8" Padding="20" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" Width="120" Height="16" Margin="0,0,12,0"/>
+                        <TextBlock Text="{Binding BusyMessage}"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</UserControl>
