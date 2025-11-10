@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Basic Configuration -->
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    
+    <!-- Application Properties -->
+    <AssemblyTitle>Focus Voucher System</AssemblyTitle>
+    <Product>Focus Voucher System</Product>
+    <Company>Focus Technologies</Company>
+    <Copyright>Copyright © 2024 Focus Technologies</Copyright>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    
+    <!-- Optimized Deployment (WPF-compatible) -->
+    <PublishSingleFile Condition="'$(Configuration)' == 'Release'">true</PublishSingleFile>
+    <SelfContained Condition="'$(Configuration)' == 'Release'">false</SelfContained>
+    <RuntimeIdentifier Condition="'$(Configuration)' == 'Release'">win-x64</RuntimeIdentifier>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishReadyToRun>false</PublishReadyToRun>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Core Dependencies -->
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+    <PackageReference Include="Dapper" Version="2.1.35" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.0" />
+    
+    <!-- Optional Export Dependencies (can be removed if not needed) -->
+    <!-- <PackageReference Include="ClosedXML" Version="0.102.2" /> -->
+    <!-- <PackageReference Include="QuestPDF" Version="2024.7.3" /> -->
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Data\DatabaseSchema.sql">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="tests\**" />
+    <Compile Remove="DatabaseTest.cs" />
+    <Compile Remove="TestDbCheck.cs" />
+  </ItemGroup>
+
+</Project>

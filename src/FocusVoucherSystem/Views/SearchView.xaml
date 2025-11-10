@@ -1,0 +1,452 @@
+<UserControl x:Class="FocusVoucherSystem.Views.SearchView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:local="clr-namespace:FocusVoucherSystem"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="1200">
+    
+    <UserControl.Resources>
+        <local:INRCurrencyConverter x:Key="INRCurrencyConverter" />
+        <!-- Styles -->
+        <Style x:Key="HeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#2d3748"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+        </Style>
+        
+        <Style x:Key="LabelStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="MinWidth" Value="120"/>
+        </Style>
+        
+        <Style x:Key="InputStyle" TargetType="TextBox">
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="8,5"/>
+            <Setter Property="BorderBrush" Value="#cbd5e0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        
+        <Style x:Key="ButtonStyle" TargetType="Button">
+            <Setter Property="Height" Value="35"/>
+            <Setter Property="Padding" Value="15,8"/>
+            <Setter Property="Margin" Value="5,0"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+        
+        <Style x:Key="PrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
+            <Setter Property="Background" Value="#4299e1"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#3182ce"/>
+        </Style>
+        
+        <Style x:Key="SecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
+            <Setter Property="Background" Value="#e2e8f0"/>
+            <Setter Property="Foreground" Value="#2d3748"/>
+            <Setter Property="BorderBrush" Value="#cbd5e0"/>
+        </Style>
+        
+        <Style x:Key="DangerButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
+            <Setter Property="Background" Value="#e53e3e"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#c53030"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#f7fafc" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="20,15">
+            <StackPanel>
+                <TextBlock Text="SEARCH VOUCHERS" Style="{StaticResource HeaderTextStyle}"/>
+                <TextBlock Text="Search and manage vouchers by vehicle with real-time updates"
+                          FontSize="12" Foreground="#718096"/>
+            </StackPanel>
+        </Border>
+        
+        <!-- Dynamic Vehicle Search -->
+        <Border Grid.Row="1" Background="White" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="20,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="300"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" Text="Vehicle:" Style="{StaticResource LabelStyle}"/>
+                <Grid Grid.Column="1">
+                    <TextBox x:Name="VehicleSearchBox" 
+                             Text="{Binding VehicleSearchTerm, UpdateSourceTrigger=PropertyChanged}"
+                             Style="{StaticResource InputStyle}" 
+                             ToolTip="Type vehicle number or description to search"
+                             PreviewKeyDown="VehicleSearchBox_PreviewKeyDown"
+                             KeyDown="VehicleSearchBox_KeyDown"/>
+                    
+                    <!-- Vehicle Search Results Popup -->
+                    <Popup x:Name="VehicleResultsPopup" 
+                           PlacementTarget="{Binding ElementName=VehicleSearchBox}"
+                           Placement="Bottom"
+                           IsOpen="{Binding IsVehicleSearchOpen}"
+                           StaysOpen="False"
+                           AllowsTransparency="True"
+                           Focusable="False">
+                        <Border Background="White" BorderBrush="#cbd5e0" BorderThickness="1" 
+                                MaxHeight="200" MinWidth="300">
+                            <ListBox x:Name="VehicleSearchListBox" 
+                                     ItemsSource="{Binding VehicleSearchResults}"
+                                     SelectedItem="{Binding SelectedVehicleFromSearch}"
+                                     Background="Transparent" BorderThickness="0"
+                                     PreviewKeyDown="VehicleSearchListBox_PreviewKeyDown"
+                                     SelectionChanged="VehicleSearchListBox_SelectionChanged">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="Padding" Value="8,4"/>
+                                        <Setter Property="Margin" Value="1"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#e2e8f0"/>
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#4299e1"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="5">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel Grid.Column="0">
+                                                <TextBlock Text="{Binding VehicleNumber}" FontWeight="SemiBold"/>
+                                                <TextBlock Text="{Binding Description}" FontSize="11" Opacity="0.7"/>
+                                            </StackPanel>
+                                            <TextBlock Grid.Column="1" Text="{Binding FormattedBalance}" 
+                                                       FontFamily="Consolas" FontSize="11"/>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Border>
+                    </Popup>
+                </Grid>
+                
+                <Button Grid.Column="3" Content="Clear" Command="{Binding ClearVehicleSearchCommand}" 
+                        Style="{StaticResource SecondaryButtonStyle}" Width="80"/>
+                
+                <StackPanel Grid.Column="5" Orientation="Horizontal">
+                    <Button Content="REFRESH" Command="{Binding RefreshDataCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Voucher Edit Form (Visible when voucher selected) -->
+        <Border Grid.Row="2" Background="#f8f9fa" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="20"
+                Visibility="{Binding IsVoucherEditMode, Converter={x:Static local:Converters.BooleanToVisibilityConverter}}">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                
+                <TextBlock Grid.Row="0" Text="Edit Voucher" FontWeight="Bold" FontSize="14" Margin="0,0,0,15"/>
+                
+                <!-- First Row of Inputs -->
+                <Grid Grid.Row="1" Margin="0,0,0,15">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="150"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="200"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0" Text="Voucher No:" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Grid.Column="1" Text="{Binding CurrentVoucher.VoucherNumber, UpdateSourceTrigger=PropertyChanged}" 
+                             Style="{StaticResource InputStyle}" IsReadOnly="True" Background="#f1f1f1"/>
+                    
+                    <TextBlock Grid.Column="3" Text="Date:" Style="{StaticResource LabelStyle}"/>
+                    <DatePicker Grid.Column="4" SelectedDate="{Binding CurrentVoucher.Date}" Height="30" VerticalContentAlignment="Center"/>
+                    
+                    <TextBlock Grid.Column="6" Text="Vehicle:" Style="{StaticResource LabelStyle}"/>
+                    <ComboBox Grid.Column="7" 
+                              ItemsSource="{Binding AvailableVehicles}"
+                              SelectedItem="{Binding SelectedVehicleForEdit, UpdateSourceTrigger=PropertyChanged}"
+                              Height="30" VerticalContentAlignment="Center"
+                              ToolTip="Select vehicle for this voucher">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0">
+                                        <TextBlock Text="{Binding VehicleNumber}" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Description}" FontSize="10" Foreground="Gray"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Text="{Binding FormattedBalance}" 
+                                               FontFamily="Consolas" FontSize="10" Margin="10,0,0,0"/>
+                                </Grid>
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                </Grid>
+                
+                <!-- Second Row of Inputs -->
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="120"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="80"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="20"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    
+                    <TextBlock Grid.Column="0" Text="Amount:" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Grid.Column="1" Text="{Binding CurrentVoucher.Amount, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}" 
+                             Style="{StaticResource InputStyle}" TextAlignment="Right"/>
+                    
+                    <TextBlock Grid.Column="3" Text="Dr/Cr:" Style="{StaticResource LabelStyle}"/>
+                    <ComboBox Grid.Column="4" 
+                              SelectedValue="{Binding CurrentVoucher.DrCr, UpdateSourceTrigger=PropertyChanged}" 
+                              SelectedValuePath="Content"
+                              Height="30" VerticalContentAlignment="Center">
+                        <ComboBoxItem Content="D"/>
+                        <ComboBoxItem Content="C"/>
+                    </ComboBox>
+                    
+                    <TextBlock Grid.Column="6" Text="Narration:" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Grid.Column="7" Text="{Binding CurrentVoucher.Narration, UpdateSourceTrigger=PropertyChanged}" 
+                             Style="{StaticResource InputStyle}"/>
+                    
+                    <!-- Action Buttons -->
+                    <StackPanel Grid.Column="9" Orientation="Horizontal">
+                        <Button Content="UPDATE" Command="{Binding UpdateVoucherCommand}"
+                                Style="{StaticResource PrimaryButtonStyle}" ToolTip="Update voucher"/>
+                        <Button Content="CANCEL" Command="{Binding CancelEditCommand}"
+                                Style="{StaticResource SecondaryButtonStyle}" ToolTip="Cancel editing"/>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </Border>
+        
+        <!-- Vouchers DataGrid with Virtualization -->
+        <DataGrid Grid.Row="3" 
+                  ItemsSource="{Binding Vouchers}" 
+                  SelectedItem="{Binding SelectedVoucher}"
+                  AutoGenerateColumns="False" 
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
+                  AlternationCount="2"
+                  AlternatingRowBackground="#f8f9fa"
+                  SelectionMode="Single"
+                  EnableRowVirtualization="True"
+                  EnableColumnVirtualization="True"
+                  VirtualizingPanel.VirtualizationMode="Recycling"
+                  VirtualizingPanel.IsVirtualizing="True"
+                  VirtualizingPanel.ScrollUnit="Item"
+                  ScrollViewer.CanContentScroll="True">
+            
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Voucher No" Binding="{Binding VoucherNumber}" Width="100" IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Center"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Padding" Value="4,8"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="100" IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Center"/>
+                            <Setter Property="Padding" Value="4,8"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="Vehicle" Binding="{Binding Vehicle.VehicleNumber}" Width="150" IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Padding" Value="4,8"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="Description" Binding="{Binding Vehicle.Description}" Width="200" IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#718096"/>
+                            <Setter Property="Padding" Value="4,8"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="Amount" Binding="{Binding Amount, Converter={StaticResource INRCurrencyConverter}}" Width="120" IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Right"/>
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                            <Setter Property="Padding" Value="4,8"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="Dr/Cr" Binding="{Binding DrCr}" Width="60" IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Center"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="Padding" Value="2,8"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding DrCr}" Value="D">
+                                    <Setter Property="Background" Value="#e6ffed"/>
+                                    <Setter Property="Foreground" Value="#22543d"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding DrCr}" Value="C">
+                                    <Setter Property="Background" Value="#fed7d7"/>
+                                    <Setter Property="Foreground" Value="#742a2a"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="Running Balance" Binding="{Binding FormattedRunningBalance}" Width="150" IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Right"/>
+                            <Setter Property="FontFamily" Value="Consolas"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="Padding" Value="4,8"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding RunningBalance, Converter={x:Static local:Converters.DecimalToBalanceTypeConverter}}" Value="D">
+                                    <Setter Property="Foreground" Value="#22543d"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding RunningBalance, Converter={x:Static local:Converters.DecimalToBalanceTypeConverter}}" Value="C">
+                                    <Setter Property="Foreground" Value="#742a2a"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn Header="Narration" Binding="{Binding Narration}" Width="*" IsReadOnly="True">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#4a5568"/>
+                            <Setter Property="Padding" Value="4,8"/>
+                            <Setter Property="FontSize" Value="13"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <DataGridTemplateColumn Header="Actions" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button Content="EDIT" Command="{Binding DataContext.EditVoucherCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" ToolTip="Edit Voucher"
+                                        Width="60" Height="30" FontSize="12" Margin="2,0" Padding="8,4"
+                                        Background="#4299e1" Foreground="White" BorderBrush="#3182ce"/>
+                                <Button Content="DELETE" Command="{Binding DataContext.DeleteVoucherCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                        CommandParameter="{Binding}" ToolTip="Delete Voucher"
+                                        Width="70" Height="30" FontSize="12" Margin="2,0" Padding="8,4"
+                                        Background="#e53e3e" Foreground="White" BorderBrush="#c53030"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+        
+        <!-- Status Bar -->
+        <Border Grid.Row="4" Background="#edf2f7" BorderBrush="#cbd5e0" BorderThickness="0,1,0,0" Padding="15,8">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" VerticalAlignment="Center" FontSize="12"/>
+                
+                <TextBlock Grid.Column="1" Margin="0,0,20,0" VerticalAlignment="Center" FontSize="12">
+                    <Run Text="Vehicle: "/>
+                    <Run Text="{Binding SelectedVehicle.DisplayName, Mode=OneWay, FallbackValue='None'}" FontWeight="Bold"/>
+                </TextBlock>
+                
+                <TextBlock Grid.Column="2" Margin="0,0,20,0" VerticalAlignment="Center" FontSize="12">
+                    <Run Text="Current Balance: "/>
+                    <Run Text="{Binding SelectedVehicle.FormattedBalance, Mode=OneWay, FallbackValue='₹0.00'}" FontWeight="Bold" Foreground="#2d3748"/>
+                </TextBlock>
+                
+                <TextBlock Grid.Column="3" VerticalAlignment="Center" FontSize="12">
+                    <Run Text="Total Vouchers: "/>
+                    <Run Text="{Binding TotalVouchers}" FontWeight="Bold"/>
+                </TextBlock>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
