@@ -35,6 +35,10 @@ nul
 .vs/
 *.userprefs
 
+# Claude Code
+.claude/
+.claude_backup/
+
 # Windows
 Thumbs.db
 Desktop.ini
