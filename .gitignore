@@ -39,6 +39,9 @@ nul
 .claude/
 .claude_backup/
 
+# Fonts
+LatoFont/
+
 # Windows
 Thumbs.db
 Desktop.ini
