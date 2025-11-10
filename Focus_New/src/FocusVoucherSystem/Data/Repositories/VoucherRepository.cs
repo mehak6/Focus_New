@@ -24,7 +24,7 @@ public class VoucherRepository : IVoucherRepository
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
                    c.CompanyId AS CompId, c.Name, c.FinancialYearStart, c.FinancialYearEnd,
                    c.LastVoucherNumber, c.IsActive AS CompIsActive, c.CreatedDate AS CompCreatedDate, c.ModifiedDate AS CompModifiedDate,
-                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Narration, 
                    ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
             FROM Vouchers v
             LEFT JOIN Companies c ON v.CompanyId = c.CompanyId
@@ -52,7 +52,7 @@ public class VoucherRepository : IVoucherRepository
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
                    c.CompanyId AS CompId, c.Name, c.FinancialYearStart, c.FinancialYearEnd,
                    c.LastVoucherNumber, c.IsActive AS CompIsActive, c.CreatedDate AS CompCreatedDate, c.ModifiedDate AS CompModifiedDate,
-                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Narration, 
                    ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
             FROM Vouchers v
             LEFT JOIN Companies c ON v.CompanyId = c.CompanyId
@@ -187,9 +187,9 @@ public class VoucherRepository : IVoucherRepository
                 if (vehicleIds.Any())
                 {
                     var vehicleSql = $@"
-                        SELECT VehicleId, CompanyId, VehicleNumber, Description, 
+                        SELECT VehicleId, CompanyId, VehicleNumber, Narration,
                                IsActive, CreatedDate, ModifiedDate
-                        FROM Vehicles 
+                        FROM Vehicles
                         WHERE VehicleId IN ({string.Join(",", vehicleIds)})";
                     
                     var vehicles = await connection.QueryAsync<Vehicle>(vehicleSql);
@@ -222,7 +222,7 @@ public class VoucherRepository : IVoucherRepository
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Narration, 
                    ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
             FROM Vouchers v
             LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
@@ -248,7 +248,7 @@ public class VoucherRepository : IVoucherRepository
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Narration, 
                    ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
             FROM Vouchers v
             LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
@@ -282,7 +282,7 @@ public class VoucherRepository : IVoucherRepository
                 SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId,
                        v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
                        COALESCE(ve.VehicleNumber, '') as VehicleNumber,
-                       COALESCE(ve.Description, '') as VehicleDescription
+                       COALESCE(ve.Narration, '') as VehicleDescription
                 FROM Vouchers v
                 LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
                 WHERE v.CompanyId = @CompanyId
@@ -335,7 +335,7 @@ public class VoucherRepository : IVoucherRepository
                     {
                         VehicleId = voucher.VehicleId,
                         VehicleNumber = (row.VehicleNumber ?? "").ToString(),
-                        Description = (row.VehicleDescription ?? "").ToString()
+                        Narration = (row.VehicleDescription ?? "").ToString()
                     };
 
                     voucherList.Add(voucher);
@@ -385,7 +385,7 @@ public class VoucherRepository : IVoucherRepository
                 SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId,
                        v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
                        COALESCE(ve.VehicleNumber, '') as VehicleNumber,
-                       COALESCE(ve.Description, '') as VehicleDescription
+                       COALESCE(ve.Narration, '') as VehicleDescription
                 FROM Vouchers v
                 LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
                 WHERE v.CompanyId = @CompanyId
@@ -441,7 +441,7 @@ public class VoucherRepository : IVoucherRepository
                     {
                         VehicleId = voucher.VehicleId,
                         VehicleNumber = (row.VehicleNumber ?? "").ToString(),
-                        Description = (row.VehicleDescription ?? "").ToString()
+                        Narration = (row.VehicleDescription ?? "").ToString()
                     };
 
                     voucherList.Add(voucher);
@@ -475,7 +475,7 @@ public class VoucherRepository : IVoucherRepository
                 WITH VoucherData AS (
                     SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                            v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                           ve.VehicleNumber, ve.Description,
+                           ve.VehicleNumber, ve.Narration,
                            SUM(CASE WHEN v2.DrCr = 'D' THEN v2.Amount ELSE -v2.Amount END) AS RunningBalance
                     FROM Vouchers v
                     LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
@@ -484,11 +484,11 @@ public class VoucherRepository : IVoucherRepository
                     WHERE v.VehicleId = @VehicleId
                     GROUP BY v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                              v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                             ve.VehicleNumber, ve.Description
+                             ve.VehicleNumber, ve.Narration
                 )
                 SELECT VoucherId, CompanyId, VoucherNumber, Date, VehicleId, 
                        Amount, DrCr, Narration, CreatedDate, ModifiedDate,
-                       VehicleNumber, Description, RunningBalance
+                       VehicleNumber, Narration, RunningBalance
                 FROM VoucherData
                 ORDER BY Date DESC, VoucherId DESC
                 LIMIT 1000";
@@ -512,7 +512,7 @@ public class VoucherRepository : IVoucherRepository
                 {
                     VehicleId = SafeToInt32(v.VehicleId),
                     VehicleNumber = v.VehicleNumber?.ToString() ?? string.Empty,
-                    Description = v.Description?.ToString() ?? string.Empty
+                    Narration = v.Narration?.ToString() ?? string.Empty
                 }
             }).ToList();
         }
@@ -541,7 +541,7 @@ public class VoucherRepository : IVoucherRepository
                 WITH VoucherData AS (
                     SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                            v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                           ve.VehicleNumber, ve.Description,
+                           ve.VehicleNumber, ve.Narration,
                            SUM(CASE WHEN v2.DrCr = 'D' THEN v2.Amount ELSE -v2.Amount END) AS RunningBalance,
                            ROW_NUMBER() OVER (ORDER BY v.Date DESC, v.VoucherId DESC) AS RowNum
                     FROM Vouchers v
@@ -551,11 +551,11 @@ public class VoucherRepository : IVoucherRepository
                     WHERE v.VehicleId = @VehicleId
                     GROUP BY v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                              v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                             ve.VehicleNumber, ve.Description
+                             ve.VehicleNumber, ve.Narration
                 )
                 SELECT VoucherId, CompanyId, VoucherNumber, Date, VehicleId, 
                        Amount, DrCr, Narration, CreatedDate, ModifiedDate,
-                       VehicleNumber, Description, RunningBalance
+                       VehicleNumber, Narration, RunningBalance
                 FROM VoucherData
                 WHERE RowNum > @Offset AND RowNum <= @Offset + @PageSize
                 ORDER BY Date DESC, VoucherId DESC";
@@ -583,7 +583,7 @@ public class VoucherRepository : IVoucherRepository
                 {
                     VehicleId = SafeToInt32(v.VehicleId),
                     VehicleNumber = v.VehicleNumber?.ToString() ?? string.Empty,
-                    Description = v.Description?.ToString() ?? string.Empty
+                    Narration = v.Narration?.ToString() ?? string.Empty
                 }
             }).ToList();
             
@@ -603,7 +603,7 @@ public class VoucherRepository : IVoucherRepository
         string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Narration, 
                    ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
             FROM Vouchers v
             LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
@@ -647,7 +647,7 @@ public class VoucherRepository : IVoucherRepository
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Narration, 
                    ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
             FROM Vouchers v
             LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
@@ -671,7 +671,7 @@ public class VoucherRepository : IVoucherRepository
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
-                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Description, 
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Narration, 
                    ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
             FROM Vouchers v
             LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId

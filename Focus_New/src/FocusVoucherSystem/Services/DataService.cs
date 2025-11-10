@@ -59,6 +59,7 @@ public class DataService : IDisposable
         else
         {
             await ApplyPerformanceOptimizationsAsync();
+            await ApplyDatabaseMigrationsAsync();
         }
     }
 
@@ -92,6 +93,39 @@ public class DataService : IDisposable
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"Failed to apply performance optimizations: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Applies database migrations for schema changes
+    /// </summary>
+    private async Task ApplyDatabaseMigrationsAsync()
+    {
+        try
+        {
+            var connection = await _dbConnection.GetConnectionAsync();
+
+            // Check if Description column exists in Vehicles table
+            const string checkColumnSql = @"
+                SELECT COUNT(*)
+                FROM pragma_table_info('Vehicles')
+                WHERE name='Description'";
+
+            var descriptionColumnExists = await connection.QuerySingleAsync<int>(checkColumnSql);
+
+            if (descriptionColumnExists > 0)
+            {
+                // Rename Description column to Narration
+                const string renameColumnSql = @"
+                    ALTER TABLE Vehicles RENAME COLUMN Description TO Narration";
+
+                await connection.ExecuteAsync(renameColumnSql);
+                System.Diagnostics.Debug.WriteLine("Renamed Description column to Narration in Vehicles table");
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to apply database migrations: {ex.Message}");
         }
     }
 
@@ -169,6 +203,65 @@ public class DataService : IDisposable
     /// </summary>
     public DatabaseBackupService BackupService => _backupService;
 
+    /// <summary>
+    /// Performs database maintenance operations to reclaim space and optimize performance
+    /// </summary>
+    public async Task PerformDatabaseMaintenanceAsync()
+    {
+        try
+        {
+            var connection = await _dbConnection.GetConnectionAsync();
+
+            // Execute VACUUM to reclaim unused space
+            await connection.ExecuteAsync("VACUUM");
+
+            // Analyze tables to update query planner statistics
+            await connection.ExecuteAsync("ANALYZE");
+
+            System.Diagnostics.Debug.WriteLine("Database maintenance completed: VACUUM and ANALYZE executed");
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Database maintenance failed: {ex.Message}");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Gets database file size information
+    /// </summary>
+    public async Task<DatabaseSizeInfo> GetDatabaseSizeInfoAsync()
+    {
+        try
+        {
+            var connection = await _dbConnection.GetConnectionAsync();
+
+            // Get page count and page size
+            var pageCount = await connection.QuerySingleAsync<long>("PRAGMA page_count");
+            var pageSize = await connection.QuerySingleAsync<long>("PRAGMA page_size");
+            var freeListCount = await connection.QuerySingleAsync<long>("PRAGMA freelist_count");
+
+            var totalSize = pageCount * pageSize;
+            var usedSize = (pageCount - freeListCount) * pageSize;
+            var freeSpace = freeListCount * pageSize;
+
+            return new DatabaseSizeInfo
+            {
+                TotalSizeBytes = totalSize,
+                UsedSizeBytes = usedSize,
+                FreeSpaceBytes = freeSpace,
+                PageCount = pageCount,
+                PageSize = pageSize,
+                FreeListCount = freeListCount
+            };
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"Failed to get database size info: {ex.Message}");
+            return new DatabaseSizeInfo();
+        }
+    }
+
     public void Dispose()
     {
         _backupService?.Dispose();
@@ -192,5 +285,29 @@ public class DatabaseStats
         return $"Companies: {CompanyCount}, Vehicles: {VehicleCount}, " +
                $"Vouchers: {VoucherCount}, Settings: {SettingCount} " +
                $"(as of {LastChecked:yyyy-MM-dd HH:mm:ss})";
+    }
+}
+
+/// <summary>
+/// Database size and space utilization information
+/// </summary>
+public class DatabaseSizeInfo
+{
+    public long TotalSizeBytes { get; set; }
+    public long UsedSizeBytes { get; set; }
+    public long FreeSpaceBytes { get; set; }
+    public long PageCount { get; set; }
+    public long PageSize { get; set; }
+    public long FreeListCount { get; set; }
+
+    public double TotalSizeMB => TotalSizeBytes / (1024.0 * 1024.0);
+    public double UsedSizeMB => UsedSizeBytes / (1024.0 * 1024.0);
+    public double FreeSpaceMB => FreeSpaceBytes / (1024.0 * 1024.0);
+    public double FreeSpacePercentage => TotalSizeBytes > 0 ? (FreeSpaceBytes * 100.0) / TotalSizeBytes : 0;
+
+    public override string ToString()
+    {
+        return $"Total: {TotalSizeMB:F2} MB, Used: {UsedSizeMB:F2} MB, " +
+               $"Free: {FreeSpaceMB:F2} MB ({FreeSpacePercentage:F1}% free)";
     }
 }

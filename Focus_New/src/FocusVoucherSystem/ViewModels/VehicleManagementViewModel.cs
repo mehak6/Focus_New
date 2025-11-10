@@ -120,7 +120,7 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
             CompanyId = CurrentCompany?.CompanyId ?? 1,
             IsActive = true,
             VehicleNumber = string.Empty,
-            Description = string.Empty
+            Narration = string.Empty
         };
 
         IsEditMode = true; // Always keep form visible
@@ -201,9 +201,9 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
                 var newVehicle = new Vehicle
                 {
                     VehicleNumber = vehicleNumber,
-                    Description = string.IsNullOrWhiteSpace(CurrentVehicle.Description) 
-                        ? $"Vehicle {vehicleNumber}" 
-                        : CurrentVehicle.Description,
+                    Narration = string.IsNullOrWhiteSpace(CurrentVehicle.Narration)
+                        ? $"Vehicle {vehicleNumber}"
+                        : CurrentVehicle.Narration,
                     CompanyId = CurrentCompany?.CompanyId ?? 0,
                     IsActive = true
                 };
@@ -258,7 +258,7 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
             VehicleId = vehicle.VehicleId,
             CompanyId = vehicle.CompanyId,
             VehicleNumber = vehicle.VehicleNumber,
-            Description = vehicle.Description,
+            Narration = vehicle.Narration,
             IsActive = vehicle.IsActive
         };
 
@@ -364,7 +364,7 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
 
         var result = MessageBox.Show(
             $"Are you sure you want to delete vehicle '{vehicle.VehicleNumber}'?\n\n" +
-            $"Description: {vehicle.Description}\n" +
+            $"Description: {vehicle.Narration}\n" +
             $"Status: {(vehicle.IsActive ? "Active" : "Inactive")}\n\n" +
             "Warning: This will also affect any existing vouchers for this vehicle.",
             "Confirm Delete",

@@ -53,6 +53,7 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
 
     private static DateTime _lastSelectedDate = DateTime.Today; // Make static to persist across instances
     private string _lastSelectedDrCr = "D"; // Remember last Dr/Cr selection
+    private static Dictionary<int, decimal> _vehicleDefaultAmounts = new(); // Remember last amount for each vehicle
 
     [ObservableProperty]
     private DateTime _selectedDate = _lastSelectedDate; // Initialize with preserved date
@@ -324,6 +325,12 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             // Load fresh vehicle data for the saved voucher
             savedVoucher.Vehicle = await _dataService.Vehicles.GetByIdAsync(savedVoucher.VehicleId);
 
+            // Store the amount for this vehicle (Default Amount Memory feature)
+            if (savedVoucher.VehicleId > 0)
+            {
+                _vehicleDefaultAmounts[savedVoucher.VehicleId] = savedVoucher.Amount;
+            }
+
             // Only prepare for next voucher if we just created a new voucher
             // Don't reset the form when updating an existing voucher
             if (isNewVoucher)
@@ -340,6 +347,43 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             }
 
         }, "Saving voucher...");
+    }
+
+    /// <summary>
+    /// Duplicates the last saved voucher for quick data entry
+    /// </summary>
+    [RelayCommand]
+    private async Task DuplicateLastEntry()
+    {
+        // Get the most recent voucher
+        var lastVoucher = Vouchers.OrderByDescending(v => v.VoucherId).FirstOrDefault();
+
+        if (lastVoucher == null)
+        {
+            StatusMessage = "No voucher to duplicate";
+            return;
+        }
+
+        // Copy values from last voucher to current voucher
+        CurrentVoucher.VehicleId = lastVoucher.VehicleId;
+        CurrentVoucher.DrCr = lastVoucher.DrCr;
+        CurrentVoucher.Amount = lastVoucher.Amount;
+        CurrentVoucher.Narration = lastVoucher.Narration;
+
+        // Update selected vehicle
+        SelectedVehicle = Vehicles.FirstOrDefault(v => v.VehicleId == lastVoucher.VehicleId);
+        if (SelectedVehicle != null)
+        {
+            VehicleSearchText = SelectedVehicle.VehicleNumber;
+        }
+
+        // Update entered amount for display
+        EnteredAmount = lastVoucher.Amount;
+
+        StatusMessage = $"Duplicated voucher #{lastVoucher.VoucherNumber} - {lastVoucher.Vehicle?.VehicleNumber} - {lastVoucher.FormattedAmount}";
+
+        // Focus the amount field for quick editing
+        FocusAmountFieldRequested?.Invoke();
     }
 
     /// <summary>
@@ -516,6 +560,14 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             // Keep search box in sync with selection
             VehicleSearchText = value.DisplayName;
             ShowVehicleSuggestions = false;
+
+            // Auto-fill last amount if available (Default Amount Memory feature)
+            if (_vehicleDefaultAmounts.TryGetValue(value.VehicleId, out var lastAmount))
+            {
+                EnteredAmount = lastAmount;
+                CurrentVoucher.Amount = lastAmount;
+                StatusMessage = $"Selected vehicle: {value.DisplayName} - Auto-filled last amount: ₹{lastAmount:N2}";
+            }
         }
     }
 
@@ -614,7 +666,7 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             {
                 VehicleId = -1, // Use negative ID to indicate this is a placeholder
                 VehicleNumber = $"+ Create '{term}'",
-                Description = "Press Enter to create this new vehicle",
+                Narration = "Press Enter to create this new vehicle",
                 CompanyId = CurrentCompany?.CompanyId ?? 0,
                 IsActive = true
             };
@@ -634,7 +686,7 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
         // Check exact matches first (highest priority)
         if (vehicle.VehicleNumber?.ToLowerInvariant().Contains(term) == true ||
             vehicle.DisplayName?.ToLowerInvariant().Contains(term) == true ||
-            vehicle.Description?.ToLowerInvariant().Contains(term) == true)
+            vehicle.Narration?.ToLowerInvariant().Contains(term) == true)
         {
             return true;
         }
@@ -672,7 +724,7 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             score -= 30;
             
         // Description contains search term
-        if (vehicle.Description?.ToLowerInvariant().Contains(term) == true)
+        if (vehicle.Narration?.ToLowerInvariant().Contains(term) == true)
             score -= 10;
             
         return score;

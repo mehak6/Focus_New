@@ -26,14 +26,14 @@ CREATE TABLE Companies (
 );
 
 -- =============================================================================
--- VEHICLES TABLE  
+-- VEHICLES TABLE
 -- Master list of vehicles/accounts for voucher entries
 -- =============================================================================
 CREATE TABLE Vehicles (
     VehicleId INTEGER PRIMARY KEY AUTOINCREMENT,
     CompanyId INTEGER NOT NULL,
     VehicleNumber TEXT NOT NULL,
-    Description TEXT,
+    Narration TEXT,
     IsActive BOOLEAN NOT NULL DEFAULT 1,
     CreatedDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ModifiedDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -156,17 +156,17 @@ END;
 
 -- View for voucher balances per vehicle
 CREATE VIEW VoucherBalances AS
-SELECT 
+SELECT
     v.VehicleId,
     ve.VehicleNumber,
-    ve.Description,
+    ve.Narration,
     SUM(CASE WHEN v.DrCr = 'D' THEN v.Amount ELSE -v.Amount END) as Balance,
     COUNT(*) as TransactionCount,
     MAX(v.Date) as LastTransactionDate
 FROM Vouchers v
 JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
 WHERE ve.IsActive = 1
-GROUP BY v.VehicleId, ve.VehicleNumber, ve.Description;
+GROUP BY v.VehicleId, ve.VehicleNumber, ve.Narration;
 
 -- View for daily transaction summaries
 CREATE VIEW DailySummary AS

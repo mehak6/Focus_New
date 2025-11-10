@@ -27,8 +27,8 @@ public class VoucherEntryViewModelTests : IDisposable
         // Arrange
         var mockVehicles = new List<Vehicle>
         {
-            new Vehicle { VehicleId = 1, VehicleNumber = "MH01AB1234", Description = "Test Vehicle" },
-            new Vehicle { VehicleId = 2, VehicleNumber = "MH02CD5678", Description = "Another Vehicle" }
+            new Vehicle { VehicleId = 1, VehicleNumber = "MH01AB1234", Narration = "Test Vehicle" },
+            new Vehicle { VehicleId = 2, VehicleNumber = "MH02CD5678", Narration = "Another Vehicle" }
         };
 
         var mockVouchers = new List<Voucher>

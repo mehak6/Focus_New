@@ -164,44 +164,111 @@ public class PrintService
 
     public FlowDocument BuildRecoveryDocument(string title, IEnumerable<RecoveryItem> recoveryItems)
     {
+        var items = recoveryItems.ToList();
+        var totalVehicles = items.Count(x => !x.IsGroupHeader);
+        var totalOutstanding = items.Where(x => !x.IsGroupHeader).Sum(x => x.RemainingBalance);
+
         var doc = new FlowDocument
         {
             FontFamily = new FontFamily("Segoe UI"),
-            FontSize = 12,
-            PagePadding = new Thickness(25)
+            FontSize = 12, // Smaller font for better fit
+            PagePadding = new Thickness(15, 20, 15, 20), // Minimal margins - Left, Top, Right, Bottom
+            ColumnWidth = double.PositiveInfinity // Allow table to use full width
         };
 
-        var header = new Paragraph(new Run(title))
+        // Title header - BLACK AND WHITE
+        var titleParagraph = new Paragraph(new Run(title))
         {
-            FontSize = 14,
-            FontWeight = FontWeights.SemiBold,
+            FontSize = 16,
+            FontWeight = FontWeights.Bold,
             TextAlignment = TextAlignment.Center,
-            Margin = new Thickness(0, 0, 0, 10)
+            Margin = new Thickness(0, 0, 0, 5),
+            Foreground = Brushes.Black
         };
-        doc.Blocks.Add(header);
+        doc.Blocks.Add(titleParagraph);
 
-        var table = new Table();
+        // Metadata - BLACK AND WHITE
+        var metaParagraph = new Paragraph()
+        {
+            FontSize = 11,
+            TextAlignment = TextAlignment.Center,
+            Margin = new Thickness(0, 0, 0, 5),
+            Foreground = Brushes.Black
+        };
+        metaParagraph.Inlines.Add(new Run($"Generated on: {DateTime.Now:dd/MM/yyyy HH:mm}"));
+        doc.Blocks.Add(metaParagraph);
+
+        // Separator - BLACK AND WHITE
+        var separator = new Paragraph()
+        {
+            BorderBrush = Brushes.Black,
+            BorderThickness = new Thickness(0, 0, 0, 2),
+            Margin = new Thickness(0, 0, 0, 8)
+        };
+        doc.Blocks.Add(separator);
+
+        // Summary section - BLACK AND WHITE (WITHOUT total outstanding)
+        var summaryParagraph = new Paragraph()
+        {
+            Background = Brushes.White,
+            Padding = new Thickness(8),
+            Margin = new Thickness(0, 0, 0, 10),
+            TextAlignment = TextAlignment.Center,
+            BorderBrush = Brushes.Black,
+            BorderThickness = new Thickness(1)
+        };
+        summaryParagraph.Inlines.Add(new Run("Total Vehicles: ") { FontWeight = FontWeights.SemiBold });
+        summaryParagraph.Inlines.Add(new Run(totalVehicles.ToString())
+        {
+            FontWeight = FontWeights.Bold,
+            Foreground = Brushes.Black
+        });
+        doc.Blocks.Add(summaryParagraph);
+
+        // Table - BLACK AND WHITE with Auto width
+        var table = new Table
+        {
+            CellSpacing = 0,
+            BorderBrush = Brushes.Black,
+            BorderThickness = new Thickness(1)
+        };
         doc.Blocks.Add(table);
 
-        // Columns for recovery statement
-        for (int i = 0; i < 5; i++)
-            table.Columns.Add(new TableColumn());
+        // Columns with Auto width to fit page - BLACK AND WHITE
+        // NEW ORDER: Balance (left) -> Last Credit -> Last Date -> Days -> Vehicle Number (right)
+        table.Columns.Add(new TableColumn { Width = new GridLength(1, GridUnitType.Star) });  // Balance - Auto
+        table.Columns.Add(new TableColumn { Width = new GridLength(1, GridUnitType.Star) });  // Last Credit - Auto
+        table.Columns.Add(new TableColumn { Width = new GridLength(0.9, GridUnitType.Star) }); // Last Date - Slightly smaller
+        table.Columns.Add(new TableColumn { Width = new GridLength(0.6, GridUnitType.Star) }); // Days - Smaller
+        table.Columns.Add(new TableColumn { Width = new GridLength(1.5, GridUnitType.Star) }); // Vehicle Number - Bigger
 
-        // Header row
+        // Header row - BLACK AND WHITE
         var headerGroup = new TableRowGroup();
         table.RowGroups.Add(headerGroup);
-        var hrow = new TableRow();
+        var hrow = new TableRow
+        {
+            Background = Brushes.Black
+        };
         headerGroup.Rows.Add(hrow);
 
-        string[] headers = ["Vehicle Number", "Last Credit Amount", "Last Date", "Remaining Balance", "Status"];        
-        foreach (var h in headers)
+        // NEW ORDER: Balance -> Last Credit -> Last Date -> Days -> Vehicle Number
+        string[] headers = ["Balance", "Last Credit", "Last Date", "Days", "Vehicle Number"];
+        TextAlignment[] alignments = [TextAlignment.Right, TextAlignment.Right, TextAlignment.Center, TextAlignment.Center, TextAlignment.Left];
+
+        for (int i = 0; i < headers.Length; i++)
         {
-            var cell = new TableCell(new Paragraph(new Run(h)))
+            var cellPara = new Paragraph(new Run(headers[i]))
+            {
+                Margin = new Thickness(0),
+                TextAlignment = alignments[i]
+            };
+            var cell = new TableCell(cellPara)
             {
                 FontWeight = FontWeights.Bold,
-                Padding = new Thickness(4, 3, 4, 3),
+                Padding = new Thickness(4, 6, 4, 6),
+                Foreground = Brushes.White,
                 BorderBrush = Brushes.Black,
-                BorderThickness = new Thickness(0, 0, 0, 2)
+                BorderThickness = new Thickness(0, 0, 1, 0)
             };
             hrow.Cells.Add(cell);
         }
@@ -209,7 +276,9 @@ public class PrintService
         // Data rows
         var body = new TableRowGroup();
         table.RowGroups.Add(body);
-        foreach (var item in recoveryItems)
+        int rowIndex = 0;
+
+        foreach (var item in items)
         {
             var row = new TableRow();
             body.Rows.Add(row);
@@ -217,42 +286,122 @@ public class PrintService
             if (item.IsGroupHeader)
             {
                 // Group header styling - span all columns in one cell
-                var groupHeaderCell = new TableCell(new Paragraph(new Run(item.VehicleNumber)))
+                var groupPara = new Paragraph(new Run(item.VehicleNumber))
                 {
-                    Padding = new Thickness(4, 3, 4, 3),
+                    Margin = new Thickness(0),
+                    TextAlignment = TextAlignment.Center
+                };
+                var groupHeaderCell = new TableCell(groupPara)
+                {
+                    Padding = new Thickness(5, 6, 5, 6),
                     FontWeight = FontWeights.Bold,
                     FontSize = 12,
-                    Background = Brushes.LightGray,
-                    TextAlignment = TextAlignment.Center,
-                    ColumnSpan = 5  // Span all 5 columns
+                    Background = Brushes.LightGray, // BLACK AND WHITE - Light gray for groups
+                    Foreground = Brushes.Black,
+                    BorderBrush = Brushes.Black,
+                    BorderThickness = new Thickness(0, 1, 0, 1),
+                    ColumnSpan = 5
                 };
                 row.Cells.Add(groupHeaderCell);
             }
             else
             {
-                // Regular data row
-                row.Cells.Add(new TableCell(new Paragraph(new Run(item.VehicleNumber))) { Padding = new Thickness(4, 2, 4, 2) });
-                
+                // Alternating row colors - BLACK AND WHITE
+                var rowBackground = (rowIndex % 2 == 0)
+                    ? Brushes.White
+                    : Brushes.White; // All white for cleaner black and white print
+                row.Background = rowBackground;
+
+                // NEW ORDER: Balance -> Last Credit -> Last Date -> Days -> Vehicle Number
+
+                // 1. Remaining Balance (LEFT - FIRST COLUMN) - BLACK AND WHITE
+                var balancePara = new Paragraph(new Run($"₹{item.RemainingBalance:N2}"))
+                {
+                    Margin = new Thickness(0),
+                    TextAlignment = TextAlignment.Right
+                };
+                row.Cells.Add(new TableCell(balancePara)
+                {
+                    Padding = new Thickness(4, 4, 4, 4),
+                    FontWeight = FontWeights.Bold,
+                    BorderBrush = Brushes.Black,
+                    BorderThickness = new Thickness(0, 0, 1, 1)
+                });
+
+                // 2. Last Credit Amount - BLACK AND WHITE
                 var amountText = item.LastAmount > 0 ? $"₹{item.LastAmount:N2}" : "₹0.00";
-                row.Cells.Add(new TableCell(new Paragraph(new Run(amountText))) 
-                { 
-                    Padding = new Thickness(4, 2, 4, 2), 
-                    TextAlignment = TextAlignment.Right 
+                var amountPara = new Paragraph(new Run(amountText))
+                {
+                    Margin = new Thickness(0),
+                    TextAlignment = TextAlignment.Right
+                };
+                row.Cells.Add(new TableCell(amountPara)
+                {
+                    Padding = new Thickness(4, 4, 4, 4),
+                    BorderBrush = Brushes.Black,
+                    BorderThickness = new Thickness(0, 0, 1, 1)
                 });
-                
+
+                // 3. Last Date - BLACK AND WHITE
                 var dateText = item.LastDate?.ToString("dd/MM/yyyy") ?? "Never";
-                row.Cells.Add(new TableCell(new Paragraph(new Run(dateText))) { Padding = new Thickness(4, 2, 4, 2) });
-                
-                row.Cells.Add(new TableCell(new Paragraph(new Run($"₹{item.RemainingBalance:N2}"))) 
-                { 
-                    Padding = new Thickness(4, 2, 4, 2), 
-                    TextAlignment = TextAlignment.Right,
-                    FontWeight = FontWeights.SemiBold
+                var datePara = new Paragraph(new Run(dateText))
+                {
+                    Margin = new Thickness(0),
+                    TextAlignment = TextAlignment.Center
+                };
+                row.Cells.Add(new TableCell(datePara)
+                {
+                    Padding = new Thickness(4, 4, 4, 4),
+                    BorderBrush = Brushes.Black,
+                    BorderThickness = new Thickness(0, 0, 1, 1)
                 });
-                
-                row.Cells.Add(new TableCell(new Paragraph(new Run(item.CreditStatus))) { Padding = new Thickness(4, 2, 4, 2) });
+
+                // 4. Days (Status) - BLACK AND WHITE
+                var statusRun = new Run(item.CreditStatus);
+                statusRun.Foreground = Brushes.Black; // BLACK AND WHITE - all black text
+
+                var statusPara = new Paragraph(statusRun)
+                {
+                    Margin = new Thickness(0),
+                    TextAlignment = TextAlignment.Center
+                };
+                row.Cells.Add(new TableCell(statusPara)
+                {
+                    Padding = new Thickness(4, 4, 4, 4),
+                    BorderBrush = Brushes.Black,
+                    BorderThickness = new Thickness(0, 0, 1, 1)
+                });
+
+                // 5. Vehicle Number (RIGHT - LAST COLUMN - BOLD AND BIGGER) - BLACK AND WHITE
+                var vehicleRun = new Run(item.VehicleNumber)
+                {
+                    FontWeight = FontWeights.Bold,
+                    FontSize = 14 // Reduced from 16 for better fit
+                };
+                var vehiclePara = new Paragraph(vehicleRun) { Margin = new Thickness(0) };
+                row.Cells.Add(new TableCell(vehiclePara)
+                {
+                    Padding = new Thickness(4, 4, 4, 4),
+                    BorderBrush = Brushes.Black,
+                    BorderThickness = new Thickness(0, 0, 1, 1)
+                });
+
+                rowIndex++;
             }
         }
+
+        // Footer summary - BLACK AND WHITE (WITHOUT total outstanding)
+        var footerParagraph = new Paragraph()
+        {
+            Background = Brushes.White,
+            Padding = new Thickness(8),
+            Margin = new Thickness(0, 10, 0, 0),
+            BorderBrush = Brushes.Black,
+            BorderThickness = new Thickness(1)
+        };
+        footerParagraph.Inlines.Add(new Run("Grand Total: ") { FontWeight = FontWeights.Bold });
+        footerParagraph.Inlines.Add(new Run($"{totalVehicles} vehicles"));
+        doc.Blocks.Add(footerParagraph);
 
         return doc;
     }

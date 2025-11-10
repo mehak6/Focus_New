@@ -435,11 +435,11 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
                 
                 // Update the voucher's vehicle
                 CurrentVoucher.VehicleId = SelectedVehicleForEdit.VehicleId;
-                CurrentVoucher.Vehicle = new Vehicle 
-                { 
+                CurrentVoucher.Vehicle = new Vehicle
+                {
                     VehicleId = SelectedVehicleForEdit.VehicleId,
                     VehicleNumber = SelectedVehicleForEdit.VehicleNumber,
-                    Description = SelectedVehicleForEdit.Description
+                    Narration = SelectedVehicleForEdit.Description
                 };
                 
                 // Update the voucher in database

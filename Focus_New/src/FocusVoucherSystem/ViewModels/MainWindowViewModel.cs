@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.Windows;
 using System.Linq;
+using System.IO;
 
 namespace FocusVoucherSystem.ViewModels;
 
@@ -42,13 +43,59 @@ public partial class MainWindowViewModel : BaseViewModel, INavigationAware
     [ObservableProperty]
     private string _lastBackupTime = "Starting...";
 
-    public MainWindowViewModel(DataService dataService, NavigationService navigationService, HotkeyService hotkeyService) 
+    public MainWindowViewModel(DataService dataService, NavigationService navigationService, HotkeyService hotkeyService)
         : base(dataService)
     {
         _navigationService = navigationService;
         _hotkeyService = hotkeyService;
-        
+
         RegisterHotkeys();
+
+        // Start backup status update timer
+        var backupTimer = new System.Timers.Timer(5000); // Update every 5 seconds
+        backupTimer.Elapsed += (s, e) => UpdateBackupStatus();
+        backupTimer.Start();
+    }
+
+    /// <summary>
+    /// Updates the backup status display
+    /// </summary>
+    private void UpdateBackupStatus()
+    {
+        try
+        {
+            var backupDir = _dataService.BackupService.BackupDirectory;
+            if (Directory.Exists(backupDir))
+            {
+                var backupFiles = Directory.GetFiles(backupDir, "FocusVoucher_Backup_*.db.gz")
+                    .Concat(Directory.GetFiles(backupDir, "FocusVoucher_Backup_*.db"))
+                    .OrderByDescending(f => File.GetCreationTime(f))
+                    .ToList();
+
+                if (backupFiles.Any())
+                {
+                    var lastBackup = File.GetCreationTime(backupFiles.First());
+                    var timeAgo = DateTime.Now - lastBackup;
+
+                    if (timeAgo.TotalMinutes < 1)
+                        LastBackupTime = "Just now";
+                    else if (timeAgo.TotalMinutes < 60)
+                        LastBackupTime = $"{(int)timeAgo.TotalMinutes} min ago";
+                    else if (timeAgo.TotalHours < 24)
+                        LastBackupTime = $"{(int)timeAgo.TotalHours}h ago";
+                    else
+                        LastBackupTime = lastBackup.ToString("dd/MM HH:mm");
+                }
+                else
+                {
+                    LastBackupTime = "No backups yet";
+                }
+            }
+        }
+        catch
+        {
+            LastBackupTime = "Unknown";
+        }
     }
 
     /// <summary>
@@ -62,6 +109,9 @@ public partial class MainWindowViewModel : BaseViewModel, INavigationAware
             await LoadCompaniesAsync();
 
             StatusMessage = "Application initialized successfully";
+
+            // Initial backup status update
+            UpdateBackupStatus();
 
         }, "Initializing application...");
     }
@@ -403,6 +453,47 @@ public partial class MainWindowViewModel : BaseViewModel, INavigationAware
             StatusMessage = $"Database backup created at {timestamp}";
             return Task.CompletedTask;
         }, "Creating backup...");
+    }
+
+    [RelayCommand]
+    private async Task DatabaseMaintenance()
+    {
+        await ExecuteAsync(async () =>
+        {
+            // Get size before maintenance
+            var sizeBefore = await _dataService.GetDatabaseSizeInfoAsync();
+
+            // Perform maintenance
+            await _dataService.PerformDatabaseMaintenanceAsync();
+
+            // Get size after maintenance
+            var sizeAfter = await _dataService.GetDatabaseSizeInfoAsync();
+
+            var spaceSaved = sizeBefore.TotalSizeMB - sizeAfter.TotalSizeMB;
+
+            if (spaceSaved > 0.1) // Only show if significant space was saved
+            {
+                StatusMessage = $"Database optimized: {spaceSaved:F2} MB space reclaimed";
+                MessageBox.Show(
+                    $"Database maintenance completed successfully!\n\n" +
+                    $"Before: {sizeBefore.TotalSizeMB:F2} MB\n" +
+                    $"After: {sizeAfter.TotalSizeMB:F2} MB\n" +
+                    $"Space reclaimed: {spaceSaved:F2} MB",
+                    "Database Maintenance",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            else
+            {
+                StatusMessage = "Database maintenance completed - no space reclaimed";
+                MessageBox.Show(
+                    "Database maintenance completed successfully!\n\n" +
+                    "No significant space could be reclaimed at this time.",
+                    "Database Maintenance",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+        }, "Optimizing database...");
     }
 
     [RelayCommand]

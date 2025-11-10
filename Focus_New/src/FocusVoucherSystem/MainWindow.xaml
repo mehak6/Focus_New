@@ -204,6 +204,11 @@
             </StatusBarItem>
             <StatusBarItem HorizontalAlignment="Right">
                 <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="💾 " Margin="0,0,3,0" FontSize="14"/>
+                    <TextBlock Text="{Binding BackupStatus}" Margin="0,0,5,0" Foreground="#90EE90"/>
+                    <TextBlock Text="|" Margin="0,0,5,0" Foreground="#666"/>
+                    <TextBlock Text="Last: " Margin="0,0,3,0"/>
+                    <TextBlock Text="{Binding LastBackupTime}" Margin="0,0,15,0" FontWeight="SemiBold"/>
                     <TextBlock Text="Company: " Margin="0,0,5,0"/>
                     <TextBlock Text="{Binding CurrentCompany.Name}" FontWeight="Bold" Margin="0,0,15,0"/>
                     <TextBlock Text="User: " Margin="0,0,5,0"/>

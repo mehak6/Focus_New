@@ -289,7 +289,7 @@ public partial class UtilitiesViewModel : BaseViewModel, INavigationAware
                     {
                         v.VehicleId.ToString(CultureInfo.InvariantCulture),
                         Csv(v.VehicleNumber),
-                        Csv(v.Description ?? string.Empty),
+                        Csv(v.Narration ?? string.Empty),
                         v.IsActive ? "1" : "0",
                         v.CreatedDate.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture),
                         v.ModifiedDate.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture)

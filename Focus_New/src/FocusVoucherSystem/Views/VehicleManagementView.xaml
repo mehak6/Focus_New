@@ -97,11 +97,11 @@
                     </Grid.ColumnDefinitions>
                     
                     <TextBlock Grid.Column="0" Text="Vehicle Number:" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Grid.Column="1" Text="{Binding CurrentVehicle.VehicleNumber, UpdateSourceTrigger=PropertyChanged}" 
+                    <TextBox Grid.Column="1" Text="{Binding CurrentVehicle.VehicleNumber, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource InputStyle}"/>
-                    
-                    <TextBlock Grid.Column="3" Text="Description:" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Grid.Column="4" Text="{Binding CurrentVehicle.Description, UpdateSourceTrigger=PropertyChanged}" 
+
+                    <TextBlock Grid.Column="3" Text="Narration:" Style="{StaticResource LabelStyle}"/>
+                    <TextBox Grid.Column="4" Text="{Binding CurrentVehicle.Narration, UpdateSourceTrigger=PropertyChanged}"
                              Style="{StaticResource InputStyle}"/>
                     
                     <!-- Action Buttons -->
@@ -130,10 +130,10 @@
                     </Grid.ColumnDefinitions>
                     
                     <TextBlock Grid.Column="0" Text="🔍 Search:" Style="{StaticResource LabelStyle}"/>
-                    <TextBox Grid.Column="1" x:Name="SearchBox" 
+                    <TextBox Grid.Column="1" x:Name="SearchBox"
                              Text="{Binding SearchTerm, UpdateSourceTrigger=PropertyChanged}"
-                             Style="{StaticResource InputStyle}" 
-                             ToolTip="Search by vehicle number or description"/>
+                             Style="{StaticResource InputStyle}"
+                             ToolTip="Search by vehicle number or narration"/>
                     
                     <Button Grid.Column="3" Content="Clear" Command="{Binding ClearSearchCommand}" 
                             Style="{StaticResource SecondaryButtonStyle}" Width="80"/>
@@ -173,7 +173,7 @@
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
 
-                <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="*" IsReadOnly="True">
+                <DataGridTextColumn Header="Narration" Binding="{Binding Narration}" Width="*" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="Foreground" Value="#4a5568"/>

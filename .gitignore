@@ -1,0 +1,45 @@
+# Database files
+*.db
+*.db-shm
+*.db-wal
+*_backup.db
+
+# Executables and binaries
+*.exe
+*.dll
+!Focus_New/src/FocusVoucherSystem/bin/Debug/**/*.dll
+!Focus_New/src/FocusVoucherSystem/bin/Release/**/*.dll
+
+# Build outputs
+publish_*/
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+# PDFs
+*.pdf
+
+# Backup files
+*_OLD_BACKUP.*
+*_backup.*
+
+# Temporary files
+nul
+*.tmp
+*.log
+
+# Visual Studio
+.vscode/
+.vs/
+*.userprefs
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Build scripts (keeping in repo for reference)
+# Uncomment if you want to exclude build scripts
+# *.bat
+# *.ps1

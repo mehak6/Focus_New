@@ -20,7 +20,7 @@ public class VehicleRepository : IVehicleRepository
     {
         var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
-            SELECT v.VehicleId, v.CompanyId, v.VehicleNumber, v.Description, 
+            SELECT v.VehicleId, v.CompanyId, v.VehicleNumber, v.Narration, 
                    v.IsActive, v.CreatedDate, v.ModifiedDate,
                    c.CompanyId, c.Name, c.FinancialYearStart, c.FinancialYearEnd,
                    c.LastVoucherNumber, c.IsActive, c.CreatedDate, c.ModifiedDate
@@ -44,7 +44,7 @@ public class VehicleRepository : IVehicleRepository
     {
         var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
-            SELECT v.VehicleId, v.CompanyId, v.VehicleNumber, v.Description, 
+            SELECT v.VehicleId, v.CompanyId, v.VehicleNumber, v.Narration, 
                    v.IsActive, v.CreatedDate, v.ModifiedDate,
                    c.CompanyId, c.Name, c.FinancialYearStart, c.FinancialYearEnd,
                    c.LastVoucherNumber, c.IsActive, c.CreatedDate, c.ModifiedDate
@@ -73,8 +73,8 @@ public class VehicleRepository : IVehicleRepository
     {
         var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
-            INSERT INTO Vehicles (CompanyId, VehicleNumber, Description, IsActive, CreatedDate, ModifiedDate)
-            VALUES (@CompanyId, @VehicleNumber, @Description, @IsActive, @CreatedDate, @ModifiedDate);
+            INSERT INTO Vehicles (CompanyId, VehicleNumber, Narration, IsActive, CreatedDate, ModifiedDate)
+            VALUES (@CompanyId, @VehicleNumber, @Narration, @IsActive, @CreatedDate, @ModifiedDate);
             SELECT last_insert_rowid();";
 
         entity.CreatedDate = DateTime.Now;
@@ -131,7 +131,7 @@ public class VehicleRepository : IVehicleRepository
     {
         var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
-            SELECT VehicleId, CompanyId, VehicleNumber, Description, 
+            SELECT VehicleId, CompanyId, VehicleNumber, Narration, 
                    IsActive, CreatedDate, ModifiedDate
             FROM Vehicles 
             WHERE CompanyId = @CompanyId
@@ -144,7 +144,7 @@ public class VehicleRepository : IVehicleRepository
     {
         var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
-            SELECT VehicleId, CompanyId, VehicleNumber, Description, 
+            SELECT VehicleId, CompanyId, VehicleNumber, Narration, 
                    IsActive, CreatedDate, ModifiedDate
             FROM Vehicles 
             WHERE CompanyId = @CompanyId AND IsActive = 1
@@ -157,12 +157,12 @@ public class VehicleRepository : IVehicleRepository
     {
         var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
-            SELECT VehicleId, CompanyId, VehicleNumber, Description, 
+            SELECT VehicleId, CompanyId, VehicleNumber, Narration, 
                    IsActive, CreatedDate, ModifiedDate
             FROM Vehicles 
             WHERE CompanyId = @CompanyId 
               AND IsActive = 1
-              AND (VehicleNumber LIKE @SearchTerm OR Description LIKE @SearchTerm)
+              AND (VehicleNumber LIKE @SearchTerm OR Narration LIKE @SearchTerm)
             ORDER BY VehicleNumber";
         
         var searchPattern = $"%{searchTerm}%";
@@ -173,7 +173,7 @@ public class VehicleRepository : IVehicleRepository
     {
         var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
-            SELECT VehicleId, CompanyId, VehicleNumber, Description, 
+            SELECT VehicleId, CompanyId, VehicleNumber, Narration, 
                    IsActive, CreatedDate, ModifiedDate
             FROM Vehicles 
             WHERE CompanyId = @CompanyId AND VehicleNumber = @VehicleNumber";

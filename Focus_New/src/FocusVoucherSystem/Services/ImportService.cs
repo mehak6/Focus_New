@@ -74,7 +74,7 @@ public class ImportService
                         {
                             CompanyId = options.CompanyId,
                             VehicleNumber = vn,
-                            Description = string.Empty,
+                            Narration = string.Empty,
                             IsActive = true
                         });
                         result.VehiclesInserted++;
@@ -103,7 +103,7 @@ public class ImportService
                             {
                                 CompanyId = options.CompanyId,
                                 VehicleNumber = v.Vehicle,
-                                Description = string.Empty,
+                                Narration = string.Empty,
                                 IsActive = true
                             });
                             result.VehiclesInserted++;

@@ -85,7 +85,7 @@
                 <!-- Search Controls -->
                 <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                     <TextBlock Text="Search Voucher #:" VerticalAlignment="Center" Margin="0,0,10,0" FontWeight="SemiBold"/>
-                    <TextBox Name="SearchVoucherTextBox" Width="120" Height="30" VerticalContentAlignment="Center" 
+                    <TextBox Name="SearchVoucherTextBox" Width="120" Height="30" VerticalContentAlignment="Center"
                              Padding="8,5" BorderBrush="#cbd5e0" BorderThickness="1" Margin="0,0,10,0"
                              ToolTip="Enter voucher number to search (Press Enter to search)"
                              KeyDown="SearchVoucherTextBox_KeyDown"/>
@@ -201,6 +201,9 @@
                     <StackPanel Grid.Column="9" Orientation="Horizontal">
                     <Button Content="SAVE (F5)" Command="{Binding SaveVoucherCommand}"
                             Style="{StaticResource PrimaryButtonStyle}" ToolTip="Save current voucher"/>
+                    <Button Content="DUPLICATE" Command="{Binding DuplicateLastEntryCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}" ToolTip="Duplicate last saved voucher for quick entry"
+                            Background="#90EE90" Foreground="Black" FontWeight="Bold"/>
                     <Button Content="NEW (F2)" Command="{Binding NewVoucherCommand}"
                             Style="{StaticResource SecondaryButtonStyle}" ToolTip="Create new voucher"/>
                     <Button Content="DELETE (F8)" Command="{Binding DeleteVoucherCommand}"
@@ -251,17 +254,6 @@
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="FontWeight" Value="SemiBold"/>
-                            <Setter Property="Padding" Value="4,8"/>
-                            <Setter Property="FontSize" Value="13"/>
-                            <Setter Property="VerticalAlignment" Value="Center"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
-
-                <DataGridTextColumn Header="Description" Binding="{Binding Vehicle.Description}" Width="200" IsReadOnly="True">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Foreground" Value="#718096"/>
                             <Setter Property="Padding" Value="4,8"/>
                             <Setter Property="FontSize" Value="13"/>
                             <Setter Property="VerticalAlignment" Value="Center"/>

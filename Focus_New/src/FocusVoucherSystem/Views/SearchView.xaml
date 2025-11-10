@@ -315,7 +315,7 @@
                     </DataGridTextColumn.ElementStyle>
                 </DataGridTextColumn>
 
-                <DataGridTextColumn Header="Description" Binding="{Binding Vehicle.Description}" Width="200" IsReadOnly="True">
+                <DataGridTextColumn Header="Description" Binding="{Binding Vehicle.Narration}" Width="200" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
                         <Style TargetType="TextBlock">
                             <Setter Property="Foreground" Value="#718096"/>

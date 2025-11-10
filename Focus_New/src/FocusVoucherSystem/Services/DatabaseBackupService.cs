@@ -1,4 +1,5 @@
 using System.IO;
+using System.IO.Compression;
 using Timer = System.Timers.Timer;
 
 namespace FocusVoucherSystem.Services;
@@ -13,6 +14,17 @@ public class DatabaseBackupService : IDisposable
     private readonly string _backupDirectory;
     private bool _disposed = false;
 
+    // Backup settings
+    public bool EnableCompression { get; set; } = true;
+    public int MaxBackupCount { get; set; } = 5;  // Keep only latest 5 backups
+
+    // Smart retention policy settings - DISABLED (using simple retention instead)
+    public bool EnableSmartRetention { get; set; } = false;  // Use simple retention (keep latest 5)
+    public int HourlyRetentionHours { get; set; } = 24;      // Keep hourly backups for 24 hours
+    public int DailyRetentionDays { get; set; } = 30;        // Keep daily backups for 30 days
+    public int WeeklyRetentionWeeks { get; set; } = 12;      // Keep weekly backups for 12 weeks
+    public int BackupIntervalMinutes { get; set; } = 10;     // Backup every 10 minutes
+
     public DatabaseBackupService()
     {
         // Get the database path (same as application directory)
@@ -26,8 +38,8 @@ public class DatabaseBackupService : IDisposable
         // Create backup directory if it doesn't exist
         Directory.CreateDirectory(_backupDirectory);
 
-        // Setup timer for 10 minutes (600,000 milliseconds)
-        _backupTimer = new Timer(600000); // 10 minutes
+        // Setup timer based on configured interval
+        _backupTimer = new Timer(BackupIntervalMinutes * 60 * 1000); // Convert minutes to milliseconds
         _backupTimer.Elapsed += OnBackupTimer;
         _backupTimer.AutoReset = true;
 
@@ -55,7 +67,7 @@ public class DatabaseBackupService : IDisposable
     }
 
     /// <summary>
-    /// Creates a backup of the database with timestamp
+    /// Creates a backup of the database with timestamp and optional compression
     /// </summary>
     private void CreateBackup()
     {
@@ -68,33 +80,18 @@ public class DatabaseBackupService : IDisposable
                 return;
             }
 
-            // Create backup filename with timestamp
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-            var backupFileName = $"FocusVoucher_Backup_{timestamp}.db";
-            var backupFilePath = Path.Combine(_backupDirectory, backupFileName);
 
-            // Copy database file to backup location
-            File.Copy(_databasePath, backupFilePath, true);
-
-            // Also copy WAL and SHM files if they exist
-            var walPath = _databasePath + "-wal";
-            var shmPath = _databasePath + "-shm";
-
-            if (File.Exists(walPath))
+            if (EnableCompression)
             {
-                var walBackupPath = Path.Combine(_backupDirectory, $"FocusVoucher_Backup_{timestamp}.db-wal");
-                File.Copy(walPath, walBackupPath, true);
+                CreateCompressedBackup(timestamp);
+            }
+            else
+            {
+                CreateUncompressedBackup(timestamp);
             }
 
-            if (File.Exists(shmPath))
-            {
-                var shmBackupPath = Path.Combine(_backupDirectory, $"FocusVoucher_Backup_{timestamp}.db-shm");
-                File.Copy(shmPath, shmBackupPath, true);
-            }
-
-            System.Diagnostics.Debug.WriteLine($"DatabaseBackupService: Backup created - {backupFileName}");
-
-            // Clean up old backups (keep only last 20 backups to save space)
+            // Clean up old backups
             CleanupOldBackups();
         }
         catch (Exception ex)
@@ -104,40 +101,213 @@ public class DatabaseBackupService : IDisposable
     }
 
     /// <summary>
-    /// Removes old backup files, keeping only the most recent 20
+    /// Creates a compressed backup using GZip compression
+    /// </summary>
+    private void CreateCompressedBackup(string timestamp)
+    {
+        var backupFileName = $"FocusVoucher_Backup_{timestamp}.db.gz";
+        var backupFilePath = Path.Combine(_backupDirectory, backupFileName);
+
+        // Compress main database file
+        using (var originalFile = new FileStream(_databasePath, FileMode.Open, FileAccess.Read))
+        using (var compressedFile = new FileStream(backupFilePath, FileMode.Create))
+        using (var compressionStream = new GZipStream(compressedFile, CompressionMode.Compress))
+        {
+            originalFile.CopyTo(compressionStream);
+        }
+
+        // Compress WAL file if it exists
+        var walPath = _databasePath + "-wal";
+        if (File.Exists(walPath))
+        {
+            var walBackupPath = Path.Combine(_backupDirectory, $"FocusVoucher_Backup_{timestamp}.db-wal.gz");
+            using (var originalWal = new FileStream(walPath, FileMode.Open, FileAccess.Read))
+            using (var compressedWal = new FileStream(walBackupPath, FileMode.Create))
+            using (var compressionStream = new GZipStream(compressedWal, CompressionMode.Compress))
+            {
+                originalWal.CopyTo(compressionStream);
+            }
+        }
+
+        // Compress SHM file if it exists
+        var shmPath = _databasePath + "-shm";
+        if (File.Exists(shmPath))
+        {
+            var shmBackupPath = Path.Combine(_backupDirectory, $"FocusVoucher_Backup_{timestamp}.db-shm.gz");
+            using (var originalShm = new FileStream(shmPath, FileMode.Open, FileAccess.Read))
+            using (var compressedShm = new FileStream(shmBackupPath, FileMode.Create))
+            using (var compressionStream = new GZipStream(compressedShm, CompressionMode.Compress))
+            {
+                originalShm.CopyTo(compressionStream);
+            }
+        }
+
+        System.Diagnostics.Debug.WriteLine($"DatabaseBackupService: Compressed backup created - {backupFileName}");
+    }
+
+    /// <summary>
+    /// Creates an uncompressed backup (legacy method)
+    /// </summary>
+    private void CreateUncompressedBackup(string timestamp)
+    {
+        var backupFileName = $"FocusVoucher_Backup_{timestamp}.db";
+        var backupFilePath = Path.Combine(_backupDirectory, backupFileName);
+
+        // Copy database file to backup location
+        File.Copy(_databasePath, backupFilePath, true);
+
+        // Also copy WAL and SHM files if they exist
+        var walPath = _databasePath + "-wal";
+        var shmPath = _databasePath + "-shm";
+
+        if (File.Exists(walPath))
+        {
+            var walBackupPath = Path.Combine(_backupDirectory, $"FocusVoucher_Backup_{timestamp}.db-wal");
+            File.Copy(walPath, walBackupPath, true);
+        }
+
+        if (File.Exists(shmPath))
+        {
+            var shmBackupPath = Path.Combine(_backupDirectory, $"FocusVoucher_Backup_{timestamp}.db-shm");
+            File.Copy(shmPath, shmBackupPath, true);
+        }
+
+        System.Diagnostics.Debug.WriteLine($"DatabaseBackupService: Uncompressed backup created - {backupFileName}");
+    }
+
+    /// <summary>
+    /// Implements smart backup retention policy with tiered retention
     /// </summary>
     private void CleanupOldBackups()
     {
         try
         {
-            var backupFiles = Directory.GetFiles(_backupDirectory, "FocusVoucher_Backup_*.db")
-                                     .OrderByDescending(f => File.GetCreationTime(f))
-                                     .Skip(20) // Keep 20 most recent
-                                     .ToArray();
-
-            foreach (var oldBackup in backupFiles)
+            if (EnableSmartRetention)
             {
-                try
-                {
-                    File.Delete(oldBackup);
-
-                    // Also delete associated WAL and SHM files
-                    var walFile = oldBackup + "-wal";
-                    var shmFile = oldBackup + "-shm";
-
-                    if (File.Exists(walFile)) File.Delete(walFile);
-                    if (File.Exists(shmFile)) File.Delete(shmFile);
-                }
-                catch
-                {
-                    // Ignore errors when deleting old backups
-                }
+                ApplySmartRetentionPolicy();
+            }
+            else
+            {
+                ApplySimpleRetentionPolicy();
             }
         }
         catch (Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"DatabaseBackupService: Error cleaning up old backups - {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// Applies smart tiered retention policy: hourly for 24h, daily for 30 days, weekly for 12 weeks
+    /// </summary>
+    private void ApplySmartRetentionPolicy()
+    {
+        var allBackupFiles = GetAllBackupFiles();
+        var now = DateTime.Now;
+        var filesToKeep = new HashSet<string>();
+
+        // Group files by time periods
+        var filesByTime = allBackupFiles
+            .Select(f => new { File = f, Time = File.GetCreationTime(f) })
+            .OrderByDescending(x => x.Time)
+            .ToList();
+
+        // Keep all backups from the last hour (most recent)
+        var lastHourFiles = filesByTime.Where(x => (now - x.Time).TotalHours < 1).Select(x => x.File);
+        foreach (var file in lastHourFiles) filesToKeep.Add(file);
+
+        // Keep hourly backups for the specified retention period
+        var hourlyFiles = filesByTime
+            .Where(x => (now - x.Time).TotalHours < HourlyRetentionHours)
+            .GroupBy(x => new { x.Time.Year, x.Time.Month, x.Time.Day, x.Time.Hour })
+            .Select(g => g.OrderByDescending(x => x.Time).First().File);
+        foreach (var file in hourlyFiles) filesToKeep.Add(file);
+
+        // Keep daily backups for the specified retention period
+        var dailyFiles = filesByTime
+            .Where(x => (now - x.Time).TotalDays < DailyRetentionDays)
+            .GroupBy(x => new { x.Time.Year, x.Time.Month, x.Time.Day })
+            .Select(g => g.OrderByDescending(x => x.Time).First().File);
+        foreach (var file in dailyFiles) filesToKeep.Add(file);
+
+        // Keep weekly backups for the specified retention period
+        var weeklyFiles = filesByTime
+            .Where(x => (now - x.Time).TotalDays < WeeklyRetentionWeeks * 7)
+            .GroupBy(x => GetWeekOfYear(x.Time))
+            .Select(g => g.OrderByDescending(x => x.Time).First().File);
+        foreach (var file in weeklyFiles) filesToKeep.Add(file);
+
+        // Delete files not in the keep list
+        var filesToDelete = allBackupFiles.Except(filesToKeep);
+        DeleteBackupFiles(filesToDelete);
+
+        System.Diagnostics.Debug.WriteLine($"DatabaseBackupService: Smart cleanup completed, keeping {filesToKeep.Count} backups");
+    }
+
+    /// <summary>
+    /// Applies simple retention policy based on MaxBackupCount
+    /// </summary>
+    private void ApplySimpleRetentionPolicy()
+    {
+        var allBackupFiles = GetAllBackupFiles();
+        var filesToDelete = allBackupFiles
+            .OrderByDescending(f => File.GetCreationTime(f))
+            .Skip(MaxBackupCount);
+
+        DeleteBackupFiles(filesToDelete);
+        System.Diagnostics.Debug.WriteLine($"DatabaseBackupService: Simple cleanup completed, keeping {MaxBackupCount} most recent");
+    }
+
+    /// <summary>
+    /// Gets all backup files (both compressed and uncompressed)
+    /// </summary>
+    private List<string> GetAllBackupFiles()
+    {
+        var allBackupFiles = new List<string>();
+        allBackupFiles.AddRange(Directory.GetFiles(_backupDirectory, "FocusVoucher_Backup_*.db"));
+        allBackupFiles.AddRange(Directory.GetFiles(_backupDirectory, "FocusVoucher_Backup_*.db.gz"));
+        return allBackupFiles;
+    }
+
+    /// <summary>
+    /// Deletes backup files and their associated WAL/SHM files
+    /// </summary>
+    private void DeleteBackupFiles(IEnumerable<string> filesToDelete)
+    {
+        foreach (var oldBackup in filesToDelete)
+        {
+            try
+            {
+                File.Delete(oldBackup);
+
+                // Also delete associated WAL and SHM files (both compressed and uncompressed)
+                var baseFileName = oldBackup.Replace(".gz", ""); // Remove .gz if present
+                var walFile = baseFileName + "-wal";
+                var shmFile = baseFileName + "-shm";
+                var walFileGz = walFile + ".gz";
+                var shmFileGz = shmFile + ".gz";
+
+                if (File.Exists(walFile)) File.Delete(walFile);
+                if (File.Exists(shmFile)) File.Delete(shmFile);
+                if (File.Exists(walFileGz)) File.Delete(walFileGz);
+                if (File.Exists(shmFileGz)) File.Delete(shmFileGz);
+            }
+            catch
+            {
+                // Ignore errors when deleting old backups
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets the week of year for grouping weekly backups
+    /// </summary>
+    private string GetWeekOfYear(DateTime date)
+    {
+        var culture = System.Globalization.CultureInfo.CurrentCulture;
+        var weekOfYear = culture.Calendar.GetWeekOfYear(date,
+            System.Globalization.CalendarWeekRule.FirstDay, DayOfWeek.Monday);
+        return $"{date.Year}-W{weekOfYear:00}";
     }
 
     /// <summary>

@@ -25,10 +25,10 @@ public class Vehicle
     public string VehicleNumber { get; set; } = string.Empty;
 
     /// <summary>
-    /// Optional description of the vehicle
+    /// Optional narration for the vehicle
     /// </summary>
     [StringLength(500)]
-    public string? Description { get; set; }
+    public string? Narration { get; set; }
 
     /// <summary>
     /// Whether the vehicle is active
@@ -56,11 +56,11 @@ public class Vehicle
     public virtual ICollection<Voucher> Vouchers { get; set; } = new List<Voucher>();
 
     /// <summary>
-    /// Gets the display name for this vehicle (includes description if available)
+    /// Gets the display name for this vehicle (includes narration if available)
     /// </summary>
-    public string DisplayName => string.IsNullOrWhiteSpace(Description) 
-        ? VehicleNumber 
-        : $"{VehicleNumber} - {Description}";
+    public string DisplayName => string.IsNullOrWhiteSpace(Narration)
+        ? VehicleNumber
+        : $"{VehicleNumber} - {Narration}";
 
     /// <summary>
     /// Gets the formatted balance for this vehicle in INR format
@@ -100,9 +100,9 @@ public class Vehicle
             return true;
 
         var term = searchTerm.ToLowerInvariant();
-        
+
         return VehicleNumber.ToLowerInvariant().Contains(term) ||
-               (Description?.ToLowerInvariant().Contains(term) ?? false);
+               (Narration?.ToLowerInvariant().Contains(term) ?? false);
     }
 
     public override string ToString()

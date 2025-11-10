@@ -51,6 +51,14 @@
             <Setter Property="Foreground" Value="#2d3748"/>
             <Setter Property="BorderBrush" Value="#cbd5e0"/>
         </Style>
+
+        <Style x:Key="ExportButtonStyle" TargetType="Button" BasedOn="{StaticResource ButtonStyle}">
+            <Setter Property="Background" Value="#48bb78"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="#38a169"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
     </UserControl.Resources>
 
     <Grid>
@@ -65,7 +73,7 @@
         <Border Grid.Row="0" Background="#f7fafc" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="20,15">
             <StackPanel>
                 <TextBlock Text="RECOVERY STATEMENT" Style="{StaticResource HeaderTextStyle}"/>
-                <TextBlock Text="Find vehicles with positive balance and no debit/credit transactions within specified days" FontSize="12" Foreground="#718096"/>
+                <TextBlock Text="Find vehicles with no transactions within specified days and last credit amount greater than or equal to minimum amount" FontSize="12" Foreground="#718096"/>
             </StackPanel>
         </Border>
 
@@ -77,23 +85,33 @@
                     <ColumnDefinition Width="120"/>
                     <ColumnDefinition Width="20"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="140"/>
+                    <ColumnDefinition Width="20"/>
+                    <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0" Text="Days:" Style="{StaticResource LabelStyle}" FontSize="14"/>
-                <TextBox Grid.Column="1" Text="{Binding Days, UpdateSourceTrigger=PropertyChanged}" 
+                <TextBox Grid.Column="1" Text="{Binding Days, UpdateSourceTrigger=PropertyChanged}"
                          Style="{StaticResource InputStyle}" TextAlignment="Center"
-                         ToolTip="Number of days to check for vehicles with positive balance and no debit/credit transactions"/>
+                         ToolTip="Number of days to check for vehicles with no transactions"/>
 
-                <StackPanel Grid.Column="3" Orientation="Horizontal">
+                <TextBlock Grid.Column="3" Text="Min Credit:" Style="{StaticResource LabelStyle}" FontSize="14"/>
+                <TextBox Grid.Column="4" Text="{Binding MinimumAmount, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource InputStyle}" TextAlignment="Right"
+                         ToolTip="Minimum last credit amount (vehicles with last credit >= this amount will be shown)"/>
+
+                <StackPanel Grid.Column="6" Orientation="Horizontal">
                     <Button Content="GENERATE" Command="{Binding GenerateRecoveryCommand}"
                             Style="{StaticResource PrimaryButtonStyle}" Width="120"/>
                     <Button Content="CLEAR" Command="{Binding ClearCommand}"
                             Style="{StaticResource SecondaryButtonStyle}" Width="90"/>
                     <Button Content="PRINT" Command="{Binding PrintRecoveryCommand}"
                             Style="{StaticResource SecondaryButtonStyle}" Width="90"/>
-                    <Button Content="EXPORT CSV" Command="{Binding ExportCommand}"
-                            Style="{StaticResource SecondaryButtonStyle}" Width="120"/>
+                    <Button Command="{Binding ExportPdfCommand}"
+                            Style="{StaticResource ExportButtonStyle}" Width="130">
+                        <TextBlock Text="EXPORT PDF" FontWeight="Bold" FontSize="14"/>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Border>

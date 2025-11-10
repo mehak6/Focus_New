@@ -15,15 +15,19 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
 {
     private readonly ExportService _exportService;
     private readonly PrintService _printService;
+    private readonly PdfExportService _pdfExportService;
 
     [ObservableProperty]
     private int _days = 30;
 
     [ObservableProperty]
+    private decimal _minimumAmount = 0;
+
+    [ObservableProperty]
     private ObservableCollection<RecoveryItem> _recoveryItems = new();
 
     [ObservableProperty]
-    private string _statusMessage = "Enter number of days and click Generate to find vehicles with positive balance and no transactions in that period";
+    private string _statusMessage = "Enter number of days and minimum last credit amount, then click Generate to find vehicles";
 
     [ObservableProperty]
     private int _totalVehicles;
@@ -34,6 +38,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
     {
         _exportService = new ExportService();
         _printService = new PrintService();
+        _pdfExportService = new PdfExportService();
     }
 
     /// <summary>
@@ -42,7 +47,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
     [RelayCommand]
     private async Task GenerateRecovery()
     {
-        if (_currentCompany == null) 
+        if (_currentCompany == null)
         {
             StatusMessage = "No company selected";
             return;
@@ -51,6 +56,12 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
         if (Days <= 0)
         {
             StatusMessage = "Please enter a valid number of days (greater than 0)";
+            return;
+        }
+
+        if (MinimumAmount < 0)
+        {
+            StatusMessage = "Please enter a valid minimum amount (0 or greater)";
             return;
         }
 
@@ -87,18 +98,28 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
                         .ThenByDescending(v => v.VoucherId)
                         .FirstOrDefault();
                     
+                    // Get last credit amount first
+                    decimal lastCreditAmount = 0;
+                    if (lastCreditVoucher != null)
+                    {
+                        lastCreditAmount = lastCreditVoucher.Amount;
+                    }
+
+                    // Skip vehicles with last credit amount less than minimum amount
+                    if (MinimumAmount > 0 && lastCreditAmount < MinimumAmount)
+                        continue;
+
                     // Get current balance for this vehicle
                     var currentBalance = await _dataService.Vehicles.GetVehicleBalanceAsync(vehicle.VehicleId);
-                    
+
                     // Skip vehicles with zero or negative balance
                     if (currentBalance <= 0)
                         continue;
-                    
+
                     string transactionStatus;
                     int daysSinceLastTransaction;
-                    decimal lastCreditAmount = 0;
                     DateTime? lastDate = null;
-                    
+
                     if (lastVoucher == null)
                     {
                         // No transactions ever
@@ -113,19 +134,13 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
                         lastDate = lastVoucher.Date;
                     }
                     
-                    // Set last credit amount if there was a credit transaction
-                    if (lastCreditVoucher != null)
-                    {
-                        lastCreditAmount = lastCreditVoucher.Amount;
-                    }
-                    
                     // Extract vehicle group prefix (e.g., "UP-25" from "UP-25C-1234")
                     var groupPrefix = ExtractVehicleGroupPrefix(vehicle.VehicleNumber);
                     
                     inactiveVehicleItems.Add(new RecoveryItem
                     {
                         VehicleNumber = vehicle.VehicleNumber,
-                        Description = vehicle.Description ?? "-",
+                        Description = vehicle.Narration ?? "-",
                         LastAmount = lastCreditAmount,
                         LastDate = lastDate,
                         RemainingBalance = currentBalance,
@@ -173,9 +188,11 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
             }
             
             TotalVehicles = inactiveVehicleItems.Count;
-            StatusMessage = TotalVehicles > 0 
-                ? $"Found {TotalVehicles} vehicles with positive balance and no transactions in the last {Days} days (grouped by vehicle type)"
-                : $"No vehicles found with positive balance and no transactions in the last {Days} days";
+
+            var amountFilter = MinimumAmount > 0 ? $" and last credit ≥ ₹{MinimumAmount:N2}" : "";
+            StatusMessage = TotalVehicles > 0
+                ? $"Found {TotalVehicles} vehicles with no transactions in last {Days} days{amountFilter} (grouped by vehicle type)"
+                : $"No vehicles found with no transactions in last {Days} days{amountFilter}";
                 
         }, "Generating recovery statement...");
     }
@@ -227,14 +244,14 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
     {
         RecoveryItems.Clear();
         TotalVehicles = 0;
-        StatusMessage = "Enter number of days and click Generate to find vehicles with positive balance and no transactions in that period";
+        StatusMessage = "Enter number of days and minimum last credit amount, then click Generate to find vehicles";
     }
 
     /// <summary>
-    /// Exports the recovery results to CSV
+    /// Exports the recovery results to PDF
     /// </summary>
     [RelayCommand]
-    private void Export()
+    private void ExportPdf()
     {
         if (!RecoveryItems.Any())
         {
@@ -246,45 +263,23 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
         {
             // Get application directory
             var appDirectory = AppContext.BaseDirectory;
-            
+
             // Create file name
-            var fileName = $"Recovery_Statement_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+            var fileName = $"Recovery_Statement_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
             var filePath = Path.Combine(appDirectory, fileName);
 
-            // Write CSV
-            using (var writer = new StreamWriter(filePath))
-            {
-                // Header
-                writer.WriteLine("Vehicle Type,Vehicle Number,Last Credit Amount,Last Date,Remaining Balance,Transaction Status");
-                
-                // Data
-                foreach (var item in RecoveryItems)
-                {
-                    if (item.IsGroupHeader)
-                    {
-                        // Group header row
-                        writer.WriteLine($"\"{item.GroupPrefix}\",\"{item.VehicleNumber}\",\"\",\"\",\"\",\"{item.CreditStatus}\"");
-                    }
-                    else
-                    {
-                        // Regular vehicle row
-                        var lastDateStr = item.LastDate?.ToString("dd/MM/yyyy") ?? "Never";
-                        var lastAmountStr = item.LastAmount == 0 ? "0.00" : item.LastAmount.ToString("F2");
-                        var balanceStr = item.RemainingBalance.ToString("F2");
-                        
-                        writer.WriteLine($"\"{item.GroupPrefix}\",\"{item.VehicleNumber}\",\"{lastAmountStr}\",\"{lastDateStr}\",\"{balanceStr}\",\"{item.CreditStatus}\"");
-                    }
-                }
-            }
+            // Generate PDF
+            var companyName = _currentCompany?.Name ?? "Focus Voucher System";
+            _pdfExportService.GenerateRecoveryPdf(filePath, companyName, Days, RecoveryItems);
 
-            StatusMessage = $"Recovery statement exported to: {fileName} in application folder";
-            
+            StatusMessage = $"PDF exported to: {fileName} in application folder";
+
             // Open the folder containing the file
             System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{filePath}\"");
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Export failed: {ex.Message}";
+            StatusMessage = $"PDF export failed: {ex.Message}";
         }
     }
 
@@ -324,7 +319,7 @@ public partial class RecoveryViewModel : BaseViewModel, INavigationAware
         if (parameters is Company company)
         {
             _currentCompany = company;
-            StatusMessage = $"Recovery Statement for {company.Name} - Enter days to find vehicles with positive balance and no transactions in that period";
+            StatusMessage = $"Recovery Statement for {company.Name} - Enter days and minimum last credit amount to find vehicles";
         }
         return Task.CompletedTask;
     }

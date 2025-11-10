@@ -38,7 +38,7 @@ public partial class VehicleDisplayItem : ObservableObject
     /// <summary>
     /// Vehicle description
     /// </summary>
-    public string? Description => _vehicle.Description;
+    public string? Description => _vehicle.Narration;
 
     /// <summary>
     /// Is vehicle active
@@ -114,7 +114,7 @@ public partial class VehicleDisplayItem : ObservableObject
             VehicleId = _vehicle.VehicleId,
             CompanyId = _vehicle.CompanyId,
             VehicleNumber = _vehicle.VehicleNumber,
-            Description = _vehicle.Description,
+            Narration = _vehicle.Narration,
             IsActive = _vehicle.IsActive,
             CreatedDate = _vehicle.CreatedDate,
             ModifiedDate = _vehicle.ModifiedDate,
@@ -131,7 +131,7 @@ public partial class VehicleDisplayItem : ObservableObject
         _vehicle.VehicleId = updatedVehicle.VehicleId;
         _vehicle.CompanyId = updatedVehicle.CompanyId;
         _vehicle.VehicleNumber = updatedVehicle.VehicleNumber;
-        _vehicle.Description = updatedVehicle.Description;
+        _vehicle.Narration = updatedVehicle.Narration;
         _vehicle.IsActive = updatedVehicle.IsActive;
         _vehicle.CreatedDate = updatedVehicle.CreatedDate;
         _vehicle.ModifiedDate = updatedVehicle.ModifiedDate;
