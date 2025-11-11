@@ -15,12 +15,14 @@ namespace FocusVoucherSystem.ViewModels;
 public partial class SearchViewModel : BaseViewModel, INavigationAware
 {
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CompareTransactionsCommand))]
     private ObservableCollection<Voucher> _vouchers = new();
 
     [ObservableProperty]
     private ObservableCollection<VehicleDisplayItem> _vehicleSearchResults = new();
 
     [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CompareTransactionsCommand))]
     private VehicleDisplayItem? _selectedVehicle;
 
     [ObservableProperty]
@@ -97,6 +99,19 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
 
     private List<VehicleDisplayItem> _allVehicles = new();
     private List<Voucher> _allVouchers = new();
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(CompareTransactionsCommand))]
+    private bool _isComparisonActive;
+
+    [ObservableProperty]
+    private int _unmatchedDebitsCount;
+
+    [ObservableProperty]
+    private int _unmatchedCreditsCount;
+
+    [ObservableProperty]
+    private bool _showOnlyUnmatched;
 
     public SearchViewModel(DataService dataService) : base(dataService)
     {
@@ -216,10 +231,13 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
                         Vouchers.Add(voucher);
                     }
                 }
-                
+
                 TotalVouchers = _allVouchers.Count;
+
+                // Notify that comparison button can be enabled now
+                CompareTransactionsCommand.NotifyCanExecuteChanged();
             });
-            
+
             // Update status with performance metrics
             var displayedCount = Vouchers.Count;
             if (totalCount > INITIAL_PAGE_SIZE && displayedCount < totalCount)
@@ -545,6 +563,163 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
             }
 
         }, "Deleting voucher...");
+    }
+
+    /// <summary>
+    /// Compares credit and debit transactions to find unmatched entries
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanCompareTransactions))]
+    private async Task CompareTransactions()
+    {
+        if (SelectedVehicle == null) return;
+
+        await ExecuteAsync(async () =>
+        {
+            // Get all vouchers for the selected vehicle
+            var allVouchers = await _dataService.Vouchers.GetByVehicleIdAsync(SelectedVehicle.VehicleId);
+            var voucherList = allVouchers.ToList();
+
+            // Separate debits and credits
+            var debits = voucherList.Where(v => v.DrCr == "D").ToList();
+            var credits = voucherList.Where(v => v.DrCr == "C").ToList();
+
+            // Group by amount for matching
+            var debitAmounts = debits.GroupBy(v => v.Amount).ToDictionary(g => g.Key, g => g.ToList());
+            var creditAmounts = credits.GroupBy(v => v.Amount).ToDictionary(g => g.Key, g => g.ToList());
+
+            // Track which vouchers have been matched
+            var matchedDebitIds = new HashSet<int>();
+            var matchedCreditIds = new HashSet<int>();
+
+            // Match debits with credits by amount (one-to-one pairing)
+            foreach (var debitGroup in debitAmounts)
+            {
+                var amount = debitGroup.Key;
+                var debitVouchers = debitGroup.Value;
+
+                if (creditAmounts.TryGetValue(amount, out var creditVouchers))
+                {
+                    // Match as many as possible (one-to-one)
+                    int matchCount = Math.Min(debitVouchers.Count, creditVouchers.Count);
+
+                    for (int i = 0; i < matchCount; i++)
+                    {
+                        matchedDebitIds.Add(debitVouchers[i].VoucherId);
+                        matchedCreditIds.Add(creditVouchers[i].VoucherId);
+                    }
+                }
+            }
+
+            // Mark unmatched vouchers in the current view
+            int unmatchedDebits = 0;
+            int unmatchedCredits = 0;
+
+            foreach (var voucher in Vouchers)
+            {
+                if (voucher.DrCr == "D" && !matchedDebitIds.Contains(voucher.VoucherId))
+                {
+                    voucher.IsUnmatched = true;
+                    unmatchedDebits++;
+                }
+                else if (voucher.DrCr == "C" && !matchedCreditIds.Contains(voucher.VoucherId))
+                {
+                    voucher.IsUnmatched = true;
+                    unmatchedCredits++;
+                }
+                else
+                {
+                    voucher.IsUnmatched = false;
+                }
+            }
+
+            UnmatchedDebitsCount = unmatchedDebits;
+            UnmatchedCreditsCount = unmatchedCredits;
+            IsComparisonActive = true;
+
+            if (unmatchedDebits == 0 && unmatchedCredits == 0)
+            {
+                StatusMessage = $"✓ All transactions matched for {SelectedVehicle.VehicleNumber}";
+            }
+            else
+            {
+                StatusMessage = $"⚠ Comparison active: {unmatchedDebits} unmatched debits, {unmatchedCredits} unmatched credits";
+            }
+
+        }, "Comparing transactions...");
+    }
+
+    /// <summary>
+    /// Determines if comparison can be performed
+    /// </summary>
+    private bool CanCompareTransactions()
+    {
+        return SelectedVehicle != null && Vouchers.Count > 0 && !IsComparisonActive;
+    }
+
+    /// <summary>
+    /// Clears the comparison highlighting
+    /// </summary>
+    [RelayCommand]
+    private void ClearComparison()
+    {
+        foreach (var voucher in Vouchers)
+        {
+            voucher.IsUnmatched = false;
+        }
+
+        IsComparisonActive = false;
+        UnmatchedDebitsCount = 0;
+        UnmatchedCreditsCount = 0;
+
+        if (SelectedVehicle != null)
+        {
+            StatusMessage = $"Showing all vouchers for {SelectedVehicle.VehicleNumber}";
+        }
+        else
+        {
+            StatusMessage = "Enter vehicle name to search for vouchers";
+        }
+
+        ShowOnlyUnmatched = false;
+        CompareTransactionsCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>
+    /// Toggles filter to show only unmatched transactions
+    /// </summary>
+    [RelayCommand]
+    private void ToggleUnmatchedFilter()
+    {
+        ShowOnlyUnmatched = !ShowOnlyUnmatched;
+        ApplyUnmatchedFilter();
+    }
+
+    /// <summary>
+    /// Applies the unmatched filter to the vouchers collection
+    /// </summary>
+    private void ApplyUnmatchedFilter()
+    {
+        if (ShowOnlyUnmatched)
+        {
+            // Filter to show only unmatched
+            var unmatched = _allVouchers.Where(v => v.IsUnmatched).ToList();
+            Vouchers.Clear();
+            foreach (var v in unmatched)
+            {
+                Vouchers.Add(v);
+            }
+            StatusMessage = $"🔍 Showing {unmatched.Count} unmatched transactions ({UnmatchedDebitsCount} debits, {UnmatchedCreditsCount} credits)";
+        }
+        else
+        {
+            // Show all vouchers
+            Vouchers.Clear();
+            foreach (var v in _allVouchers)
+            {
+                Vouchers.Add(v);
+            }
+            StatusMessage = $"⚠ Comparison active: {UnmatchedDebitsCount} unmatched debits, {UnmatchedCreditsCount} unmatched credits";
+        }
     }
 
     #endregion

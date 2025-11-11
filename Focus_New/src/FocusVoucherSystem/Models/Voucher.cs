@@ -82,6 +82,18 @@ public partial class Voucher : ObservableValidator
     private decimal _runningBalance;
 
     /// <summary>
+    /// Indicates whether this transaction is unmatched in comparison mode
+    /// </summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(MatchStatusIcon))]
+    private bool _isUnmatched;
+
+    /// <summary>
+    /// Gets the warning icon for unmatched transactions
+    /// </summary>
+    public string MatchStatusIcon => IsUnmatched ? "⚠ " : "";
+
+    /// <summary>
     /// Gets whether this is a debit entry
     /// </summary>
     public bool IsDebit => DrCr == "D";

@@ -153,7 +153,36 @@
                 <Button Grid.Column="3" Content="Clear" Command="{Binding ClearVehicleSearchCommand}" 
                         Style="{StaticResource SecondaryButtonStyle}" Width="80"/>
                 
-                <StackPanel Grid.Column="5" Orientation="Horizontal">
+                <StackPanel Grid.Column="5" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="COMPARE" Command="{Binding CompareTransactionsCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,10,0"
+                            ToolTip="Compare debit and credit transactions to find mismatches"/>
+                    <Button Command="{Binding ToggleUnmatchedFilterCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,10,0"
+                            Visibility="{Binding IsComparisonActive, Converter={x:Static local:Converters.BooleanToVisibilityConverter}}"
+                            ToolTip="Toggle to show only unmatched transactions">
+                        <Button.Content>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🔍 " FontSize="14"/>
+                                <TextBlock FontSize="12">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text" Value="SHOW ONLY UNMATCHED"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ShowOnlyUnmatched}" Value="True">
+                                                    <Setter Property="Text" Value="SHOW ALL"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Button.Content>
+                    </Button>
+                    <Button Content="CLEAR COMPARISON" Command="{Binding ClearComparisonCommand}"
+                            Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,10,0"
+                            Visibility="{Binding IsComparisonActive, Converter={x:Static local:Converters.BooleanToVisibilityConverter}}"
+                            ToolTip="Clear transaction comparison highlighting"/>
                     <Button Content="REFRESH" Command="{Binding RefreshDataCommand}"
                             Style="{StaticResource SecondaryButtonStyle}"/>
                 </StackPanel>
@@ -279,19 +308,49 @@
                   VirtualizingPanel.IsVirtualizing="True"
                   VirtualizingPanel.ScrollUnit="Item"
                   ScrollViewer.CanContentScroll="True">
-            
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Voucher No" Binding="{Binding VoucherNumber}" Width="100" IsReadOnly="True">
-                    <DataGridTextColumn.ElementStyle>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="TextAlignment" Value="Center"/>
+
+            <DataGrid.RowStyle>
+                <Style TargetType="DataGridRow">
+                    <Style.Triggers>
+                        <!-- Highlight unmatched debits with warmer amber and left accent bar -->
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsUnmatched}" Value="True"/>
+                                <Condition Binding="{Binding DrCr}" Value="D"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Background" Value="#FEF3C7"/>
+                            <Setter Property="BorderBrush" Value="#F59E0B"/>
+                            <Setter Property="BorderThickness" Value="3,0,0,0"/>
                             <Setter Property="FontWeight" Value="SemiBold"/>
-                            <Setter Property="Padding" Value="4,8"/>
-                            <Setter Property="FontSize" Value="13"/>
-                            <Setter Property="VerticalAlignment" Value="Center"/>
-                        </Style>
-                    </DataGridTextColumn.ElementStyle>
-                </DataGridTextColumn>
+                        </MultiDataTrigger>
+
+                        <!-- Highlight unmatched credits with rose red and left accent bar -->
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsUnmatched}" Value="True"/>
+                                <Condition Binding="{Binding DrCr}" Value="C"/>
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Background" Value="#FECACA"/>
+                            <Setter Property="BorderBrush" Value="#EF4444"/>
+                            <Setter Property="BorderThickness" Value="3,0,0,0"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.RowStyle>
+
+            <DataGrid.Columns>
+                <DataGridTemplateColumn Header="Voucher No" Width="100" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock TextAlignment="Center" FontWeight="SemiBold" Padding="4,8"
+                                       FontSize="13" VerticalAlignment="Center">
+                                <Run Text="{Binding MatchStatusIcon, Mode=OneWay}" Foreground="#D97706"/>
+                                <Run Text="{Binding VoucherNumber, Mode=OneWay}"/>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
 
                 <DataGridTextColumn Header="Date" Binding="{Binding Date, StringFormat=dd/MM/yyyy}" Width="100" IsReadOnly="True">
                     <DataGridTextColumn.ElementStyle>
@@ -428,21 +487,35 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                
+
                 <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" VerticalAlignment="Center" FontSize="12"/>
-                
+
                 <TextBlock Grid.Column="1" Margin="0,0,20,0" VerticalAlignment="Center" FontSize="12">
                     <Run Text="Vehicle: "/>
                     <Run Text="{Binding SelectedVehicle.DisplayName, Mode=OneWay, FallbackValue='None'}" FontWeight="Bold"/>
                 </TextBlock>
-                
+
                 <TextBlock Grid.Column="2" Margin="0,0,20,0" VerticalAlignment="Center" FontSize="12">
                     <Run Text="Current Balance: "/>
                     <Run Text="{Binding SelectedVehicle.FormattedBalance, Mode=OneWay, FallbackValue='₹0.00'}" FontWeight="Bold" Foreground="#2d3748"/>
                 </TextBlock>
-                
-                <TextBlock Grid.Column="3" VerticalAlignment="Center" FontSize="12">
+
+                <!-- Comparison Results (visible when comparison is active) -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="0,0,20,0" VerticalAlignment="Center"
+                            Visibility="{Binding IsComparisonActive, Converter={x:Static local:Converters.BooleanToVisibilityConverter}}">
+                    <TextBlock FontSize="12" Margin="0,0,10,0">
+                        <Run Text="Unmatched Debits: " FontWeight="Normal"/>
+                        <Run Text="{Binding UnmatchedDebitsCount}" FontWeight="Bold" Foreground="#D97706"/>
+                    </TextBlock>
+                    <TextBlock FontSize="12">
+                        <Run Text="Unmatched Credits: " FontWeight="Normal"/>
+                        <Run Text="{Binding UnmatchedCreditsCount}" FontWeight="Bold" Foreground="#DC2626"/>
+                    </TextBlock>
+                </StackPanel>
+
+                <TextBlock Grid.Column="4" VerticalAlignment="Center" FontSize="12">
                     <Run Text="Total Vouchers: "/>
                     <Run Text="{Binding TotalVouchers}" FontWeight="Bold"/>
                 </TextBlock>

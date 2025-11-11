@@ -147,7 +147,7 @@
                Visibility="{Binding ShowSummary, Converter={StaticResource BooleanToVisibilityConverter}}">
             <StackPanel>
                 <TextBlock Text="MERGE SUMMARY:" FontWeight="Bold" FontSize="12" Foreground="#2c7a7b" Margin="0,0,0,5"/>
-                <TextBlock FontSize="11" Foreground="#285e61">
+                <TextBlock FontSize="11" Foreground="#285e61" TextWrapping="Wrap" MaxWidth="740">
                     <Run Text="Source: "/>
                     <Run Text="{Binding SourceVehicle.Vehicle.VehicleNumber}" FontWeight="Bold"/>
                     <Run Text=" ("/>
