@@ -128,7 +128,8 @@
                              Style="{StaticResource InputStyle}" IsReadOnly="{Binding IsVoucherNumberReadOnly}"/>
                     
                     <TextBlock Grid.Column="3" Text="Date:" Style="{StaticResource LabelStyle}"/>
-                    <DatePicker Grid.Column="4" SelectedDate="{Binding SelectedDate}" Height="30" VerticalContentAlignment="Center"/>
+                    <DatePicker Grid.Column="4" SelectedDate="{Binding SelectedDate, StringFormat=dd/MM/yyyy}"
+                                Height="30" VerticalContentAlignment="Center"/>
                     
                     <TextBlock Grid.Column="6" Text="Vehicle:" Style="{StaticResource LabelStyle}"/>
                     <Grid Grid.Column="7">
