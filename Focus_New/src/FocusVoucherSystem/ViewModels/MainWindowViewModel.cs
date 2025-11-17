@@ -72,29 +72,41 @@ public partial class MainWindowViewModel : BaseViewModel, INavigationAware
                     .OrderByDescending(f => File.GetCreationTime(f))
                     .ToList();
 
+                string statusText;
                 if (backupFiles.Any())
                 {
                     var lastBackup = File.GetCreationTime(backupFiles.First());
                     var timeAgo = DateTime.Now - lastBackup;
 
                     if (timeAgo.TotalMinutes < 1)
-                        LastBackupTime = "Just now";
+                        statusText = "Just now";
                     else if (timeAgo.TotalMinutes < 60)
-                        LastBackupTime = $"{(int)timeAgo.TotalMinutes} min ago";
+                        statusText = $"{(int)timeAgo.TotalMinutes} min ago";
                     else if (timeAgo.TotalHours < 24)
-                        LastBackupTime = $"{(int)timeAgo.TotalHours}h ago";
+                        statusText = $"{(int)timeAgo.TotalHours}h ago";
                     else
-                        LastBackupTime = lastBackup.ToString("dd/MM HH:mm");
+                        statusText = lastBackup.ToString("dd/MM HH:mm");
                 }
                 else
                 {
-                    LastBackupTime = "No backups yet";
+                    statusText = "No backups yet";
                 }
+
+                // Update UI property on the UI thread
+                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                {
+                    LastBackupTime = statusText;
+                });
             }
         }
-        catch
+        catch (Exception ex)
         {
-            LastBackupTime = "Unknown";
+            // Update UI property on the UI thread
+            System.Windows.Application.Current.Dispatcher.Invoke(() =>
+            {
+                LastBackupTime = "Unknown";
+            });
+            System.Diagnostics.Debug.WriteLine($"Backup status update error: {ex.Message}");
         }
     }
 
