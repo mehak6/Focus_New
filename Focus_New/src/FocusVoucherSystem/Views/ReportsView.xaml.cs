@@ -6,34 +6,73 @@ namespace FocusVoucherSystem.Views;
 
 public partial class ReportsView : UserControl
 {
+    private DatePickerTextBox? _startDateTextBox;
+    private DatePickerTextBox? _endDateTextBox;
+
     public ReportsView()
     {
         InitializeComponent();
     }
 
-    private void DatePicker_Loaded(object sender, RoutedEventArgs e)
+    private void StartDatePicker_Loaded(object sender, RoutedEventArgs e)
     {
-        if (sender is DatePicker datePicker)
+        if (sender is DatePicker datePicker && _startDateTextBox == null)
         {
             // Find the internal TextBox within the DatePicker
-            var textBox = FindVisualChild<DatePickerTextBox>(datePicker);
-            if (textBox != null)
+            _startDateTextBox = FindVisualChild<DatePickerTextBox>(datePicker);
+            if (_startDateTextBox != null)
             {
                 // Subscribe to the date change to update the format
-                datePicker.SelectedDateChanged += (s, args) =>
-                {
-                    if (datePicker.SelectedDate.HasValue)
-                    {
-                        textBox.Text = datePicker.SelectedDate.Value.ToString("dd/MM/yyyy");
-                    }
-                };
+                datePicker.SelectedDateChanged += StartDatePicker_SelectedDateChanged;
 
                 // Set initial format if there's already a selected date
-                if (datePicker.SelectedDate.HasValue)
-                {
-                    textBox.Text = datePicker.SelectedDate.Value.ToString("dd/MM/yyyy");
-                }
+                UpdateDatePickerFormat(datePicker, _startDateTextBox);
             }
+        }
+    }
+
+    private void EndDatePicker_Loaded(object sender, RoutedEventArgs e)
+    {
+        if (sender is DatePicker datePicker && _endDateTextBox == null)
+        {
+            // Find the internal TextBox within the DatePicker
+            _endDateTextBox = FindVisualChild<DatePickerTextBox>(datePicker);
+            if (_endDateTextBox != null)
+            {
+                // Subscribe to the date change to update the format
+                datePicker.SelectedDateChanged += EndDatePicker_SelectedDateChanged;
+
+                // Set initial format if there's already a selected date
+                UpdateDatePickerFormat(datePicker, _endDateTextBox);
+            }
+        }
+    }
+
+    private void StartDatePicker_SelectedDateChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (sender is DatePicker datePicker && _startDateTextBox != null)
+        {
+            UpdateDatePickerFormat(datePicker, _startDateTextBox);
+        }
+    }
+
+    private void EndDatePicker_SelectedDateChanged(object? sender, SelectionChangedEventArgs e)
+    {
+        if (sender is DatePicker datePicker && _endDateTextBox != null)
+        {
+            UpdateDatePickerFormat(datePicker, _endDateTextBox);
+        }
+    }
+
+    private static void UpdateDatePickerFormat(DatePicker datePicker, DatePickerTextBox textBox)
+    {
+        if (datePicker.SelectedDate.HasValue)
+        {
+            // Use Dispatcher to avoid interfering with the binding update
+            datePicker.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                textBox.Text = datePicker.SelectedDate.Value.ToString("dd/MM/yyyy");
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
         }
     }
 
