@@ -286,14 +286,14 @@ public class VoucherRepository : IVoucherRepository
                 FROM Vouchers v
                 LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
                 WHERE v.CompanyId = @CompanyId
-                  AND v.Date >= @StartDate
-                  AND v.Date <= @EndDate
+                  AND DATE(v.Date) >= DATE(@StartDate)
+                  AND DATE(v.Date) <= DATE(@EndDate)
                 ORDER BY v.Date, v.VoucherNumber";
 
             var parameters = new {
                 CompanyId = companyId,
-                StartDate = startDate.ToString("yyyy-MM-dd"),
-                EndDate = endDate.ToString("yyyy-MM-dd")
+                StartDate = startDate.Date.ToString("yyyy-MM-dd"),
+                EndDate = endDate.Date.ToString("yyyy-MM-dd")
             };
 
             var results = await connection.QueryAsync(sql, parameters);
@@ -371,11 +371,11 @@ public class VoucherRepository : IVoucherRepository
                 SELECT COUNT(*)
                 FROM Vouchers
                 WHERE CompanyId = @CompanyId
-                  AND Date >= @StartDate
-                  AND Date <= @EndDate";
+                  AND DATE(Date) >= DATE(@StartDate)
+                  AND DATE(Date) <= DATE(@EndDate)";
 
             var totalCount = await connection.QuerySingleAsync<int>(countSql,
-                new { CompanyId = companyId, StartDate = startDate, EndDate = endDate });
+                new { CompanyId = companyId, StartDate = startDate.Date.ToString("yyyy-MM-dd"), EndDate = endDate.Date.ToString("yyyy-MM-dd") });
 
             if (totalCount == 0)
                 return (Enumerable.Empty<Voucher>(), 0, false);
@@ -389,15 +389,15 @@ public class VoucherRepository : IVoucherRepository
                 FROM Vouchers v
                 LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
                 WHERE v.CompanyId = @CompanyId
-                  AND v.Date >= @StartDate
-                  AND v.Date <= @EndDate
+                  AND DATE(v.Date) >= DATE(@StartDate)
+                  AND DATE(v.Date) <= DATE(@EndDate)
                 ORDER BY v.Date, v.VoucherNumber
                 LIMIT @PageSize OFFSET @Offset";
 
             var parameters = new {
                 CompanyId = companyId,
-                StartDate = startDate.ToString("yyyy-MM-dd"),
-                EndDate = endDate.ToString("yyyy-MM-dd"),
+                StartDate = startDate.Date.ToString("yyyy-MM-dd"),
+                EndDate = endDate.Date.ToString("yyyy-MM-dd"),
                 PageSize = pageSize,
                 Offset = offset
             };
