@@ -23,6 +23,13 @@ public partial class App : Application
 
             // Set application culture to Indian (en-IN) for currency and number formatting
             var indianCulture = new CultureInfo("en-IN");
+
+            // Customize date format to DD/MM/YYYY
+            var dateTimeFormat = (DateTimeFormatInfo)indianCulture.DateTimeFormat.Clone();
+            dateTimeFormat.ShortDatePattern = "dd/MM/yyyy";
+            dateTimeFormat.LongDatePattern = "dd/MM/yyyy";
+            indianCulture.DateTimeFormat = dateTimeFormat;
+
             CultureInfo.DefaultThreadCurrentCulture = indianCulture;
             CultureInfo.DefaultThreadCurrentUICulture = indianCulture;
             // Ensure WPF element formatting (StringFormat) uses en-IN
