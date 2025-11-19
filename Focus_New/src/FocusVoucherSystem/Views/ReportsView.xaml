@@ -98,10 +98,10 @@
                     <ComboBox Grid.Column="1" ItemsSource="{Binding ReportTypes}" SelectedItem="{Binding SelectedReportType}" Height="32"/>
 
                     <TextBlock Grid.Column="3" Text="From Date:" Style="{StaticResource LabelStyle}"/>
-                    <DatePicker x:Name="StartDatePicker" Grid.Column="4" SelectedDate="{Binding StartDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="32" Loaded="StartDatePicker_Loaded"/>
+                    <DatePicker x:Name="StartDatePicker" Grid.Column="4" SelectedDate="{Binding StartDate}" Height="32"/>
 
                     <TextBlock Grid.Column="6" Text="To Date:" Style="{StaticResource LabelStyle}"/>
-                    <DatePicker x:Name="EndDatePicker" Grid.Column="7" SelectedDate="{Binding EndDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Height="32" Loaded="EndDatePicker_Loaded"/>
+                    <DatePicker x:Name="EndDatePicker" Grid.Column="7" SelectedDate="{Binding EndDate}" Height="32"/>
                 </Grid>
                 
                 <!-- Action Buttons Row -->
