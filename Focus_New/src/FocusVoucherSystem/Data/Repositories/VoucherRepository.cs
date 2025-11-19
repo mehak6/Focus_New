@@ -278,6 +278,9 @@ public class VoucherRepository : IVoucherRepository
             var connection = await _dbConnection.GetConnectionAsync();
 
             // Use simplified approach with manual row parsing
+            // Add one day to endDate to include all records on that day (up to 23:59:59)
+            var endDateInclusive = endDate.Date.AddDays(1);
+
             const string sql = @"
                 SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId,
                        v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
@@ -286,14 +289,14 @@ public class VoucherRepository : IVoucherRepository
                 FROM Vouchers v
                 LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
                 WHERE v.CompanyId = @CompanyId
-                  AND DATE(v.Date) >= DATE(@StartDate)
-                  AND DATE(v.Date) <= DATE(@EndDate)
+                  AND v.Date >= @StartDate
+                  AND v.Date < @EndDate
                 ORDER BY v.Date, v.VoucherNumber";
 
             var parameters = new {
                 CompanyId = companyId,
-                StartDate = startDate.Date.ToString("yyyy-MM-dd"),
-                EndDate = endDate.Date.ToString("yyyy-MM-dd")
+                StartDate = startDate.Date.ToString("yyyy-MM-dd HH:mm:ss"),
+                EndDate = endDateInclusive.ToString("yyyy-MM-dd HH:mm:ss")
             };
 
             var results = await connection.QueryAsync(sql, parameters);
@@ -366,16 +369,23 @@ public class VoucherRepository : IVoucherRepository
         {
             var connection = await _dbConnection.GetConnectionAsync();
 
+            // Add one day to endDate to include all records on that day (up to 23:59:59)
+            var endDateInclusive = endDate.Date.AddDays(1);
+
             // Get total count first
             const string countSql = @"
                 SELECT COUNT(*)
                 FROM Vouchers
                 WHERE CompanyId = @CompanyId
-                  AND DATE(Date) >= DATE(@StartDate)
-                  AND DATE(Date) <= DATE(@EndDate)";
+                  AND Date >= @StartDate
+                  AND Date < @EndDate";
 
             var totalCount = await connection.QuerySingleAsync<int>(countSql,
-                new { CompanyId = companyId, StartDate = startDate.Date.ToString("yyyy-MM-dd"), EndDate = endDate.Date.ToString("yyyy-MM-dd") });
+                new {
+                    CompanyId = companyId,
+                    StartDate = startDate.Date.ToString("yyyy-MM-dd HH:mm:ss"),
+                    EndDate = endDateInclusive.ToString("yyyy-MM-dd HH:mm:ss")
+                });
 
             if (totalCount == 0)
                 return (Enumerable.Empty<Voucher>(), 0, false);
@@ -389,15 +399,15 @@ public class VoucherRepository : IVoucherRepository
                 FROM Vouchers v
                 LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
                 WHERE v.CompanyId = @CompanyId
-                  AND DATE(v.Date) >= DATE(@StartDate)
-                  AND DATE(v.Date) <= DATE(@EndDate)
+                  AND v.Date >= @StartDate
+                  AND v.Date < @EndDate
                 ORDER BY v.Date, v.VoucherNumber
                 LIMIT @PageSize OFFSET @Offset";
 
             var parameters = new {
                 CompanyId = companyId,
-                StartDate = startDate.Date.ToString("yyyy-MM-dd"),
-                EndDate = endDate.Date.ToString("yyyy-MM-dd"),
+                StartDate = startDate.Date.ToString("yyyy-MM-dd HH:mm:ss"),
+                EndDate = endDateInclusive.ToString("yyyy-MM-dd HH:mm:ss"),
                 PageSize = pageSize,
                 Offset = offset
             };
