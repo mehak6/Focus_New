@@ -18,6 +18,7 @@ public static class Converters
     public static readonly IValueConverter INRCurrencyConverter = new INRCurrencyConverter();
     public static readonly IValueConverter DecimalToBalanceTypeConverter = new DecimalToBalanceTypeConverter();
     public static readonly IValueConverter InverseBooleanConverter = new InverseBooleanConverter();
+    public static readonly IValueConverter GreaterThanOneConverter = new GreaterThanOneConverter();
 }
 
 /// <summary>
@@ -236,5 +237,24 @@ public class InverseBooleanConverter : IValueConverter
             return !boolValue;
 
         return false;
+    }
+}
+
+/// <summary>
+/// Converts integer to boolean (value > 1 = true)
+/// </summary>
+public class GreaterThanOneConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is int intValue)
+            return intValue > 1;
+
+        return false;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        throw new NotImplementedException();
     }
 }

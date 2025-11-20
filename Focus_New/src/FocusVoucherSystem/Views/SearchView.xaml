@@ -488,22 +488,59 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" VerticalAlignment="Center" FontSize="12"/>
 
-                <TextBlock Grid.Column="1" Margin="0,0,20,0" VerticalAlignment="Center" FontSize="12">
+                <!-- Pagination Controls (visible when there are multiple pages) -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,20,0" VerticalAlignment="Center">
+                    <StackPanel.Style>
+                        <Style TargetType="StackPanel">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding TotalPages}" Value="1">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding TotalPages, Converter={x:Static local:Converters.GreaterThanOneConverter}}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </StackPanel.Style>
+
+                    <Button Content="⏮" Command="{Binding GoToFirstPageCommand}"
+                            ToolTip="First Page" Width="30" Height="24" Margin="0,0,3,0" Padding="0"
+                            IsEnabled="{Binding HasPreviousVouchers}"/>
+                    <Button Content="◀" Command="{Binding LoadPreviousVouchersCommand}"
+                            ToolTip="Previous Page" Width="30" Height="24" Margin="0,0,3,0" Padding="0"
+                            IsEnabled="{Binding HasPreviousVouchers}"/>
+                    <TextBlock VerticalAlignment="Center" Margin="5,0" FontSize="11">
+                        <Run Text="Page "/>
+                        <Run Text="{Binding CurrentPage}" FontWeight="Bold"/>
+                        <Run Text=" of "/>
+                        <Run Text="{Binding TotalPages}" FontWeight="Bold"/>
+                    </TextBlock>
+                    <Button Content="▶" Command="{Binding LoadMoreVouchersCommand}"
+                            ToolTip="Next Page" Width="30" Height="24" Margin="3,0,0,0" Padding="0"
+                            IsEnabled="{Binding HasMoreVouchers}"/>
+                    <Button Content="⏭" Command="{Binding GoToLastPageCommand}"
+                            ToolTip="Last Page" Width="30" Height="24" Margin="3,0,0,0" Padding="0"
+                            IsEnabled="{Binding HasMoreVouchers}"/>
+                </StackPanel>
+
+                <TextBlock Grid.Column="2" Margin="0,0,20,0" VerticalAlignment="Center" FontSize="12">
                     <Run Text="Vehicle: "/>
                     <Run Text="{Binding SelectedVehicle.DisplayName, Mode=OneWay, FallbackValue='None'}" FontWeight="Bold"/>
                 </TextBlock>
 
-                <TextBlock Grid.Column="2" Margin="0,0,20,0" VerticalAlignment="Center" FontSize="12">
+                <TextBlock Grid.Column="3" Margin="0,0,20,0" VerticalAlignment="Center" FontSize="12">
                     <Run Text="Current Balance: "/>
                     <Run Text="{Binding SelectedVehicle.FormattedBalance, Mode=OneWay, FallbackValue='₹0.00'}" FontWeight="Bold" Foreground="#2d3748"/>
                 </TextBlock>
 
                 <!-- Comparison Results (visible when comparison is active) -->
-                <StackPanel Grid.Column="3" Orientation="Horizontal" Margin="0,0,20,0" VerticalAlignment="Center"
+                <StackPanel Grid.Column="4" Orientation="Horizontal" Margin="0,0,20,0" VerticalAlignment="Center"
                             Visibility="{Binding IsComparisonActive, Converter={x:Static local:Converters.BooleanToVisibilityConverter}}">
                     <TextBlock FontSize="12" Margin="0,0,10,0">
                         <Run Text="Unmatched Debits: " FontWeight="Normal"/>
@@ -515,9 +552,10 @@
                     </TextBlock>
                 </StackPanel>
 
-                <TextBlock Grid.Column="4" VerticalAlignment="Center" FontSize="12">
-                    <Run Text="Total Vouchers: "/>
-                    <Run Text="{Binding TotalVouchers}" FontWeight="Bold"/>
+                <TextBlock Grid.Column="5" VerticalAlignment="Center" FontSize="12">
+                    <Run Text="Total: "/>
+                    <Run Text="{Binding TotalVouchersCount}" FontWeight="Bold"/>
+                    <Run Text=" vouchers"/>
                 </TextBlock>
             </Grid>
         </Border>

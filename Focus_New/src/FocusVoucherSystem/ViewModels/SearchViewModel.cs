@@ -113,6 +113,28 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     [ObservableProperty]
     private bool _showOnlyUnmatched;
 
+    // Pagination properties
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(LoadMoreVouchersCommand))]
+    [NotifyCanExecuteChangedFor(nameof(LoadPreviousVouchersCommand))]
+    private int _currentPage = 1;
+
+    [ObservableProperty]
+    private int _totalPages = 1;
+
+    [ObservableProperty]
+    private int _totalVouchersCount;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(LoadMoreVouchersCommand))]
+    private bool _hasMoreVouchers;
+
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(LoadPreviousVouchersCommand))]
+    private bool _hasPreviousVouchers;
+
+    private const int PAGE_SIZE = 500;
+
     public SearchViewModel(DataService dataService) : base(dataService)
     {
         InitializeNewVoucher();
@@ -163,49 +185,55 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     }
 
     /// <summary>
-    /// Loads vouchers for the selected vehicle with optimized performance
+    /// Loads vouchers for the selected vehicle with optimized performance and pagination
     /// </summary>
-    private async Task LoadVouchersForVehicleAsync(VehicleDisplayItem vehicle)
+    private async Task LoadVouchersForVehicleAsync(VehicleDisplayItem vehicle, int page = 1)
     {
-        const int INITIAL_PAGE_SIZE = 500;
-        
         try
         {
-            StatusMessage = $"🔄 Loading vouchers for {vehicle.VehicleNumber}...";
-            
+            StatusMessage = $"🔄 Loading vouchers for {vehicle.VehicleNumber} (Page {page})...";
+
             // Validation
             if (vehicle.VehicleId <= 0)
             {
                 throw new InvalidOperationException($"Invalid vehicle ID: {vehicle.VehicleId}");
             }
-            
+
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            
+            int offset = (page - 1) * PAGE_SIZE;
+
             // Use background task for heavy work
             var (vouchers, totalCount) = await Task.Run(async () =>
             {
-                // First, get count to determine if we need pagination
-                var result = await _dataService.Vouchers.GetByVehicleIdPagedAsync(vehicle.VehicleId, INITIAL_PAGE_SIZE, 0);
+                var result = await _dataService.Vouchers.GetByVehicleIdPagedAsync(vehicle.VehicleId, PAGE_SIZE, offset);
                 return result;
             });
-            
+
             // Convert to list only once, in background
             _allVouchers = await Task.Run(() => vouchers.ToList());
-            
+
             stopwatch.Stop();
-            StatusMessage = $"📊 Retrieved {_allVouchers.Count} of {totalCount} vouchers in {stopwatch.ElapsedMilliseconds}ms...";
-            
+
+            // Update pagination state
+            CurrentPage = page;
+            TotalVouchersCount = totalCount;
+            TotalPages = (int)Math.Ceiling((double)totalCount / PAGE_SIZE);
+            HasMoreVouchers = (page * PAGE_SIZE) < totalCount;
+            HasPreviousVouchers = page > 1;
+
+            StatusMessage = $"📊 Retrieved {_allVouchers.Count} vouchers (Page {page} of {TotalPages})...";
+
             // Update UI efficiently with batch operation
             await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
             {
                 // Use CollectionChanged suspension for better performance
                 Vouchers.Clear();
-                
+
                 // For large datasets, add items in smaller batches to keep UI responsive
                 if (_allVouchers.Count > 100)
                 {
                     StatusMessage = $"🔄 Updating display ({_allVouchers.Count} items)...";
-                    
+
                     // Add items in batches to prevent UI freezing
                     var batchSize = 50;
                     for (int i = 0; i < _allVouchers.Count; i += batchSize)
@@ -215,7 +243,7 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
                         {
                             Vouchers.Add(voucher);
                         }
-                        
+
                         // Allow UI to process updates periodically
                         if (i % 200 == 0)
                         {
@@ -238,20 +266,23 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
                 CompareTransactionsCommand.NotifyCanExecuteChanged();
             });
 
-            // Update status with performance metrics
+            // Update status with pagination info
             var displayedCount = Vouchers.Count;
-            if (totalCount > INITIAL_PAGE_SIZE && displayedCount < totalCount)
-            {
-                StatusMessage = $"✅ Showing first {displayedCount} of {totalCount} vouchers for {vehicle.VehicleNumber}. Scroll for more.";
-            }
-            else if (displayedCount == 0)
+            int startItem = offset + 1;
+            int endItem = offset + displayedCount;
+
+            if (displayedCount == 0)
             {
                 StatusMessage = $"❌ No vouchers found for {vehicle.DisplayName}. Balance: {vehicle.FormattedBalance}";
+            }
+            else if (TotalPages > 1)
+            {
+                StatusMessage = $"✅ Showing {startItem}-{endItem} of {totalCount} vouchers for {vehicle.VehicleNumber} (Page {page}/{TotalPages})";
             }
             else
             {
                 var latestBalance = _allVouchers.FirstOrDefault()?.RunningBalance ?? 0;
-                StatusMessage = $"✅ Loaded {displayedCount} vouchers for {vehicle.DisplayName} in {stopwatch.ElapsedMilliseconds}ms. Balance: ₹{latestBalance:N2}";
+                StatusMessage = $"✅ Loaded {displayedCount} vouchers for {vehicle.DisplayName}. Balance: ₹{latestBalance:N2}";
             }
         }
         catch (Exception ex)
@@ -261,6 +292,11 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
             {
                 Vouchers.Clear();
                 TotalVouchers = 0;
+                TotalVouchersCount = 0;
+                TotalPages = 1;
+                CurrentPage = 1;
+                HasMoreVouchers = false;
+                HasPreviousVouchers = false;
             });
             System.Diagnostics.Debug.WriteLine($"LoadVouchersForVehicleAsync error: {ex}");
         }
@@ -692,6 +728,62 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     {
         ShowOnlyUnmatched = !ShowOnlyUnmatched;
         ApplyUnmatchedFilter();
+    }
+
+    /// <summary>
+    /// Loads the next page of vouchers
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanLoadMoreVouchers))]
+    private async Task LoadMoreVouchers()
+    {
+        if (SelectedVehicle == null) return;
+        await LoadVouchersForVehicleAsync(SelectedVehicle, CurrentPage + 1);
+    }
+
+    /// <summary>
+    /// Determines if more vouchers can be loaded
+    /// </summary>
+    private bool CanLoadMoreVouchers()
+    {
+        return HasMoreVouchers && SelectedVehicle != null;
+    }
+
+    /// <summary>
+    /// Loads the previous page of vouchers
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanLoadPreviousVouchers))]
+    private async Task LoadPreviousVouchers()
+    {
+        if (SelectedVehicle == null) return;
+        await LoadVouchersForVehicleAsync(SelectedVehicle, CurrentPage - 1);
+    }
+
+    /// <summary>
+    /// Determines if previous vouchers can be loaded
+    /// </summary>
+    private bool CanLoadPreviousVouchers()
+    {
+        return HasPreviousVouchers && SelectedVehicle != null;
+    }
+
+    /// <summary>
+    /// Goes to the first page of vouchers
+    /// </summary>
+    [RelayCommand]
+    private async Task GoToFirstPage()
+    {
+        if (SelectedVehicle == null) return;
+        await LoadVouchersForVehicleAsync(SelectedVehicle, 1);
+    }
+
+    /// <summary>
+    /// Goes to the last page of vouchers
+    /// </summary>
+    [RelayCommand]
+    private async Task GoToLastPage()
+    {
+        if (SelectedVehicle == null || TotalPages <= 1) return;
+        await LoadVouchersForVehicleAsync(SelectedVehicle, TotalPages);
     }
 
     /// <summary>
