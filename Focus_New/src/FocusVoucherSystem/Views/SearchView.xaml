@@ -64,6 +64,7 @@
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
@@ -188,9 +189,36 @@
                 </StackPanel>
             </Grid>
         </Border>
-        
+
+        <!-- Amount Search Section -->
+        <Border Grid.Row="2" Background="#fffbeb" BorderBrush="#f59e0b" BorderThickness="0,0,0,1" Padding="20,10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="200"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <TextBlock Grid.Column="0" Text="Search by Amount:" Style="{StaticResource LabelStyle}" Foreground="#92400e"/>
+                <TextBox Grid.Column="1"
+                         Text="{Binding AmountSearchText, UpdateSourceTrigger=PropertyChanged}"
+                         Style="{StaticResource InputStyle}"
+                         ToolTip="Enter amount to search across all vehicles"
+                         Margin="0,0,10,0"/>
+                <Button Grid.Column="2" Content="SEARCH" Command="{Binding SearchByAmountCommand}"
+                        Style="{StaticResource PrimaryButtonStyle}" Width="100" Margin="0,0,5,0"/>
+                <Button Grid.Column="3" Content="CLEAR" Command="{Binding ClearAmountSearchCommand}"
+                        Style="{StaticResource SecondaryButtonStyle}" Width="80"
+                        Visibility="{Binding IsAmountSearchMode, Converter={x:Static local:Converters.BooleanToVisibilityConverter}}"/>
+                <TextBlock Grid.Column="4" Text="💡 Search vouchers by exact amount value across all vehicles"
+                           VerticalAlignment="Center" FontSize="11" Foreground="#92400e" Margin="20,0,0,0"/>
+            </Grid>
+        </Border>
+
         <!-- Voucher Edit Form (Visible when voucher selected) -->
-        <Border Grid.Row="2" Background="#f8f9fa" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="20"
+        <Border Grid.Row="3" Background="#f8f9fa" BorderBrush="#e2e8f0" BorderThickness="0,0,0,1" Padding="20"
                 Visibility="{Binding IsVoucherEditMode, Converter={x:Static local:Converters.BooleanToVisibilityConverter}}">
             <Grid>
                 <Grid.RowDefinitions>
@@ -291,7 +319,7 @@
         </Border>
         
         <!-- Vouchers DataGrid with Virtualization -->
-        <DataGrid Grid.Row="3" 
+        <DataGrid Grid.Row="4" 
                   ItemsSource="{Binding Vouchers}" 
                   SelectedItem="{Binding SelectedVoucher}"
                   AutoGenerateColumns="False" 
@@ -480,7 +508,7 @@
         </DataGrid>
         
         <!-- Status Bar -->
-        <Border Grid.Row="4" Background="#edf2f7" BorderBrush="#cbd5e0" BorderThickness="0,1,0,0" Padding="15,8">
+        <Border Grid.Row="5" Background="#edf2f7" BorderBrush="#cbd5e0" BorderThickness="0,1,0,0" Padding="15,8">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>

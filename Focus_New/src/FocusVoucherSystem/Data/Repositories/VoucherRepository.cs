@@ -675,6 +675,31 @@ public class VoucherRepository : IVoucherRepository
         return vouchers.FirstOrDefault();
     }
 
+    public async Task<IEnumerable<Voucher>> SearchByAmountAsync(int companyId, decimal amount)
+    {
+        var connection = await _dbConnection.GetConnectionAsync();
+        const string sql = @"
+            SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId,
+                   v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
+                   ve.VehicleId AS VehId, ve.CompanyId AS VehCompanyId, ve.VehicleNumber, ve.Narration,
+                   ve.IsActive AS VehIsActive, ve.CreatedDate AS VehCreatedDate, ve.ModifiedDate AS VehModifiedDate
+            FROM Vouchers v
+            LEFT JOIN Vehicles ve ON v.VehicleId = ve.VehicleId
+            WHERE v.CompanyId = @CompanyId AND v.Amount = @Amount
+            ORDER BY v.Date DESC, v.VoucherNumber DESC";
+
+        var vouchers = await connection.QueryAsync<Voucher, Vehicle, Voucher>(sql,
+            (voucher, vehicle) =>
+            {
+                voucher.Vehicle = vehicle;
+                return voucher;
+            },
+            new { CompanyId = companyId, Amount = amount },
+            splitOn: "VehId");
+
+        return vouchers;
+    }
+
     public async Task<IEnumerable<Voucher>> GetDayBookAsync(int companyId, DateTime date)
     {
         var connection = await _dbConnection.GetConnectionAsync();

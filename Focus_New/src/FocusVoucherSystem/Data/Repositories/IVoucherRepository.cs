@@ -16,6 +16,7 @@ public interface IVoucherRepository : IRepository<Voucher>
     Task<(IEnumerable<Voucher> Vouchers, int TotalCount)> GetByVehicleIdPagedAsync(int vehicleId, int pageSize = 500, int offset = 0);
     Task<IEnumerable<Voucher>> GetVehicleLedgerAsync(int vehicleId, DateTime? startDate = null, DateTime? endDate = null);
     Task<Voucher?> GetByVoucherNumberAsync(int companyId, int voucherNumber);
+    Task<IEnumerable<Voucher>> SearchByAmountAsync(int companyId, decimal amount);
     Task<IEnumerable<Voucher>> GetDayBookAsync(int companyId, DateTime date);
     Task<bool> IsVoucherNumberUniqueAsync(int companyId, int voucherNumber, int? excludeVoucherId = null);
     Task<int> CountByCompanyAsync(int companyId);

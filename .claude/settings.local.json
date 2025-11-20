@@ -11,7 +11,22 @@
       "Bash(dotnet build)",
       "Bash(dotnet run:*)",
       "Bash(git init:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(\"C:/Program Files/dotnet/dotnet.exe\" publish Focus_New/src/FocusVoucherSystem/FocusVoucherSystem.csproj -c Release-Compact -o \"./publish_comparison_feature\" --self-contained false)",
+      "Bash(\"C:/Program Files/dotnet/dotnet.exe\" build:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(\"C:/Program Files/dotnet/dotnet.exe\" build Focus_New/src/FocusVoucherSystem/FocusVoucherSystem.csproj -c Release-Compact)",
+      "Bash(\"C:/Program Files/dotnet/dotnet.exe\" run)",
+      "Bash(git tag:*)",
+      "Bash(gh release create:*)",
+      "Bash(winget install:*)",
+      "Bash(powershell -Command \"& {Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString(''https://cli.github.com/packages/chocolatey/install.ps1''))}\")",
+      "Bash(curl:*)",
+      "Bash(\"C:/Program Files/dotnet/dotnet.exe\" publish Focus_New/src/FocusVoucherSystem/FocusVoucherSystem.csproj -c Release-Compact -o \"./publish_v1.5.0\" --self-contained false)",
+      "Bash(\"C:/Program Files/dotnet/dotnet.exe\" publish:*)",
+      "Bash(\"C:/Program Files/dotnet/dotnet.exe\" publish Focus_New/src/FocusVoucherSystem/FocusVoucherSystem.csproj -c Release-Compact -o \"./publish_v1.5.0_fix\" --self-contained false)",
+      "Bash(Remove-Item -Path \"d:\\Projects\\Focus\\publish_v1.5.0_fix\" -Recurse -Force)"
     ],
     "deny": [],
     "ask": []

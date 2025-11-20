@@ -135,6 +135,13 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
 
     private const int PAGE_SIZE = 500;
 
+    // Amount search properties
+    [ObservableProperty]
+    private string _amountSearchText = string.Empty;
+
+    [ObservableProperty]
+    private bool _isAmountSearchMode;
+
     public SearchViewModel(DataService dataService) : base(dataService)
     {
         InitializeNewVoucher();
@@ -764,6 +771,78 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     {
         if (SelectedVehicle == null || TotalPages <= 1) return;
         await LoadVouchersForVehicleAsync(SelectedVehicle, TotalPages);
+    }
+
+    /// <summary>
+    /// Searches for vouchers by amount across all vehicles
+    /// </summary>
+    [RelayCommand]
+    private async Task SearchByAmount()
+    {
+        if (string.IsNullOrWhiteSpace(AmountSearchText) || CurrentCompany == null)
+        {
+            StatusMessage = "❌ Please enter an amount to search";
+            return;
+        }
+
+        if (!decimal.TryParse(AmountSearchText.Replace(",", ""), out decimal amount))
+        {
+            StatusMessage = "❌ Invalid amount format";
+            return;
+        }
+
+        try
+        {
+            StatusMessage = $"🔍 Searching for vouchers with amount ₹{amount:N2}...";
+            IsAmountSearchMode = true;
+            SelectedVehicle = null;
+
+            var results = await _dataService.Vouchers.SearchByAmountAsync(CurrentCompany.CompanyId, amount);
+            _allVouchers = results.ToList();
+
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                Vouchers.Clear();
+                foreach (var voucher in _allVouchers)
+                {
+                    Vouchers.Add(voucher);
+                }
+
+                TotalVouchers = _allVouchers.Count;
+                TotalPages = 1;
+                CurrentPage = 1;
+                HasMoreVouchers = false;
+                HasPreviousVouchers = false;
+
+                if (_allVouchers.Count == 0)
+                {
+                    StatusMessage = $"❌ No vouchers found with amount ₹{amount:N2}";
+                }
+                else
+                {
+                    StatusMessage = $"✅ Found {_allVouchers.Count} vouchers with amount ₹{amount:N2}";
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"❌ Error searching: {ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"SearchByAmount error: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// Clears the amount search and returns to vehicle mode
+    /// </summary>
+    [RelayCommand]
+    private void ClearAmountSearch()
+    {
+        AmountSearchText = string.Empty;
+        IsAmountSearchMode = false;
+        Vouchers.Clear();
+        _allVouchers.Clear();
+        TotalVouchers = 0;
+        StatusMessage = "✅ Amount search cleared. Select a vehicle to view vouchers.";
     }
 
     /// <summary>
