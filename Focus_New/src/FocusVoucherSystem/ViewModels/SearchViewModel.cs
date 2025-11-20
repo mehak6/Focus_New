@@ -214,76 +214,56 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
 
             stopwatch.Stop();
 
-            // Update pagination state
-            CurrentPage = page;
-            TotalVouchersCount = totalCount;
-            TotalPages = (int)Math.Ceiling((double)totalCount / PAGE_SIZE);
-            HasMoreVouchers = (page * PAGE_SIZE) < totalCount;
-            HasPreviousVouchers = page > 1;
-
-            StatusMessage = $"📊 Retrieved {_allVouchers.Count} vouchers (Page {page} of {TotalPages})...";
-
-            // Update UI efficiently with batch operation
-            await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
+            // Update UI on dispatcher thread
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                // Use CollectionChanged suspension for better performance
+                // Update pagination state
+                CurrentPage = page;
+                TotalVouchersCount = totalCount;
+                TotalPages = (int)Math.Ceiling((double)totalCount / PAGE_SIZE);
+                HasMoreVouchers = (page * PAGE_SIZE) < totalCount;
+                HasPreviousVouchers = page > 1;
+
+                StatusMessage = $"📊 Retrieved {_allVouchers.Count} vouchers (Page {page} of {TotalPages})...";
+
+                // Clear and add vouchers
                 Vouchers.Clear();
 
                 // For large datasets, add items in smaller batches to keep UI responsive
                 if (_allVouchers.Count > 100)
                 {
                     StatusMessage = $"🔄 Updating display ({_allVouchers.Count} items)...";
-
-                    // Add items in batches to prevent UI freezing
-                    var batchSize = 50;
-                    for (int i = 0; i < _allVouchers.Count; i += batchSize)
-                    {
-                        var batch = _allVouchers.Skip(i).Take(batchSize);
-                        foreach (var voucher in batch)
-                        {
-                            Vouchers.Add(voucher);
-                        }
-
-                        // Allow UI to process updates periodically
-                        if (i % 200 == 0)
-                        {
-                            await Task.Delay(1); // Allow UI to process
-                        }
-                    }
                 }
-                else
+
+                foreach (var voucher in _allVouchers)
                 {
-                    // For smaller datasets, add all at once
-                    foreach (var voucher in _allVouchers)
-                    {
-                        Vouchers.Add(voucher);
-                    }
+                    Vouchers.Add(voucher);
                 }
 
                 TotalVouchers = _allVouchers.Count;
 
                 // Notify that comparison button can be enabled now
                 CompareTransactionsCommand.NotifyCanExecuteChanged();
+
+                // Update status with pagination info
+                var displayedCount = Vouchers.Count;
+                int startItem = offset + 1;
+                int endItem = offset + displayedCount;
+
+                if (displayedCount == 0)
+                {
+                    StatusMessage = $"❌ No vouchers found for {vehicle.DisplayName}. Balance: {vehicle.FormattedBalance}";
+                }
+                else if (TotalPages > 1)
+                {
+                    StatusMessage = $"✅ Showing {startItem}-{endItem} of {totalCount} vouchers for {vehicle.VehicleNumber} (Page {page}/{TotalPages})";
+                }
+                else
+                {
+                    var latestBalance = _allVouchers.FirstOrDefault()?.RunningBalance ?? 0;
+                    StatusMessage = $"✅ Loaded {displayedCount} vouchers for {vehicle.DisplayName}. Balance: ₹{latestBalance:N2}";
+                }
             });
-
-            // Update status with pagination info
-            var displayedCount = Vouchers.Count;
-            int startItem = offset + 1;
-            int endItem = offset + displayedCount;
-
-            if (displayedCount == 0)
-            {
-                StatusMessage = $"❌ No vouchers found for {vehicle.DisplayName}. Balance: {vehicle.FormattedBalance}";
-            }
-            else if (TotalPages > 1)
-            {
-                StatusMessage = $"✅ Showing {startItem}-{endItem} of {totalCount} vouchers for {vehicle.VehicleNumber} (Page {page}/{TotalPages})";
-            }
-            else
-            {
-                var latestBalance = _allVouchers.FirstOrDefault()?.RunningBalance ?? 0;
-                StatusMessage = $"✅ Loaded {displayedCount} vouchers for {vehicle.DisplayName}. Balance: ₹{latestBalance:N2}";
-            }
         }
         catch (Exception ex)
         {

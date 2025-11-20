@@ -746,7 +746,7 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
     /// Handles Enter key press in vehicle search box - simple vehicle selection
     /// </summary>
     [RelayCommand]
-    private void HandleVehicleSearchEnter()
+    private async Task HandleVehicleSearchEnter()
     {
         if (string.IsNullOrWhiteSpace(VehicleSearchText) || CurrentCompany == null)
             return;
@@ -774,16 +774,74 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             return;
         }
 
-        // Check if first filtered vehicle is valid
-        if (FilteredVehicles.Any() && !FilteredVehicles.First().VehicleNumber.StartsWith("+ Create"))
+        // Check if first filtered vehicle is a close match (starts with search term)
+        if (FilteredVehicles.Any())
         {
-            SelectVehicle(FilteredVehicles.First());
-            return;
+            var firstVehicle = FilteredVehicles.First();
+            // Only auto-select if it's a reasonable match (starts with search term)
+            if (firstVehicle.VehicleNumber.StartsWith(searchTerm, StringComparison.OrdinalIgnoreCase))
+            {
+                SelectVehicle(firstVehicle);
+                return;
+            }
         }
 
-        // Vehicle not found
-        StatusMessage = $"Vehicle '{searchTerm}' not found. Go to VEHICLE MANAGEMENT (F1) to create it first.";
-        SelectedVehicle = null;
+        // Vehicle not found - prompt to create it
+        var result = System.Windows.MessageBox.Show(
+            $"Vehicle '{searchTerm}' not found.\n\nDo you want to create this vehicle?",
+            "Create New Vehicle",
+            System.Windows.MessageBoxButton.YesNo,
+            System.Windows.MessageBoxImage.Question);
+
+        if (result == System.Windows.MessageBoxResult.Yes)
+        {
+            await CreateAndSelectVehicleAsync(searchTerm);
+        }
+        else
+        {
+            StatusMessage = $"Vehicle '{searchTerm}' not found.";
+            SelectedVehicle = null;
+        }
+    }
+
+    /// <summary>
+    /// Creates a new vehicle and selects it for voucher entry
+    /// </summary>
+    private async Task CreateAndSelectVehicleAsync(string vehicleNumber)
+    {
+        try
+        {
+            if (CurrentCompany == null)
+            {
+                StatusMessage = "❌ No company selected";
+                return;
+            }
+
+            // Create new vehicle
+            var newVehicle = new Vehicle
+            {
+                VehicleNumber = vehicleNumber.ToUpper().Trim(),
+                Narration = string.Empty,
+                IsActive = true,
+                CompanyId = CurrentCompany.CompanyId
+            };
+
+            // Save to database
+            var savedVehicle = await _dataService.Vehicles.AddAsync(newVehicle);
+
+            // Add to vehicles list
+            Vehicles.Add(savedVehicle);
+
+            // Select the new vehicle
+            SelectVehicle(savedVehicle);
+
+            StatusMessage = $"✅ Vehicle '{savedVehicle.VehicleNumber}' created and selected";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"❌ Error creating vehicle: {ex.Message}";
+            System.Diagnostics.Debug.WriteLine($"CreateAndSelectVehicleAsync error: {ex}");
+        }
     }
 
 
