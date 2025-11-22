@@ -901,30 +901,33 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     {
         if (value != null)
         {
-            // Properly handle async operation with error handling
-            Task.Run(async () =>
-            {
-                try
-                {
-                    await LoadVouchersForVehicleAsync(value);
-                }
-                catch (Exception ex)
-                {
-                    // Update status on main thread
-                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        StatusMessage = $"Error loading vouchers for {value.VehicleNumber}: {ex.Message}";
-                        Vouchers.Clear();
-                        TotalVouchers = 0;
-                    });
-                }
-            });
+            _ = LoadVouchersForVehicleSafeAsync(value);
         }
         else
         {
             Vouchers.Clear();
             TotalVouchers = 0;
             StatusMessage = "Enter vehicle name to search for vouchers";
+        }
+    }
+
+    /// <summary>
+    /// Safely loads vouchers for vehicle with proper error handling
+    /// </summary>
+    private async Task LoadVouchersForVehicleSafeAsync(VehicleDisplayItem vehicle)
+    {
+        try
+        {
+            await LoadVouchersForVehicleAsync(vehicle);
+        }
+        catch (Exception ex)
+        {
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                StatusMessage = $"Error loading vouchers for {vehicle.VehicleNumber}: {ex.Message}";
+                Vouchers.Clear();
+                TotalVouchers = 0;
+            });
         }
     }
 

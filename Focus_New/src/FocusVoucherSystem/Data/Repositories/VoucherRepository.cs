@@ -46,7 +46,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<IEnumerable<Voucher>> GetAllAsync()
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
@@ -112,7 +112,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = "DELETE FROM Vouchers WHERE VoucherId = @Id";
         
         var rowsAffected = await connection.ExecuteAsync(sql, new { Id = id });
@@ -121,7 +121,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<bool> ExistsAsync(int id)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = "SELECT COUNT(1) FROM Vouchers WHERE VoucherId = @Id";
         
         var count = await connection.QuerySingleAsync<int>(sql, new { Id = id });
@@ -130,7 +130,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<int> CountAsync()
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = "SELECT COUNT(*) FROM Vouchers";
         
         return await connection.QuerySingleAsync<int>(sql);
@@ -138,7 +138,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<IEnumerable<Voucher>> GetByCompanyIdAsync(int companyId)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         
         try
         {
@@ -218,7 +218,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<IEnumerable<Voucher>> GetRecentVouchersAsync(int companyId, int limit = 100)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
@@ -244,7 +244,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<IEnumerable<Voucher>> SearchVouchersAsync(int companyId, string searchTerm, int limit = 100)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
@@ -275,7 +275,7 @@ public class VoucherRepository : IVoucherRepository
     {
         try
         {
-            var connection = await _dbConnection.GetConnectionAsync();
+            using var connection = await _dbConnection.GetConnectionAsync();
 
             // Use simplified approach with manual row parsing
             // Add one day to endDate to include all records on that day (up to 23:59:59)
@@ -367,7 +367,7 @@ public class VoucherRepository : IVoucherRepository
     {
         try
         {
-            var connection = await _dbConnection.GetConnectionAsync();
+            using var connection = await _dbConnection.GetConnectionAsync();
 
             // Add one day to endDate to include all records on that day (up to 23:59:59)
             var endDateInclusive = endDate.Date.AddDays(1);
@@ -608,7 +608,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<IEnumerable<Voucher>> GetVehicleLedgerAsync(int vehicleId, DateTime? startDate = null, DateTime? endDate = null)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         
         string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
@@ -653,7 +653,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<Voucher?> GetByVoucherNumberAsync(int companyId, int voucherNumber)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
@@ -677,7 +677,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<IEnumerable<Voucher>> SearchByAmountAsync(int companyId, decimal amount)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId,
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
@@ -702,7 +702,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<IEnumerable<Voucher>> GetDayBookAsync(int companyId, DateTime date)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT v.VoucherId, v.CompanyId, v.VoucherNumber, v.Date, v.VehicleId, 
                    v.Amount, v.DrCr, v.Narration, v.CreatedDate, v.ModifiedDate,
@@ -728,7 +728,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<bool> IsVoucherNumberUniqueAsync(int companyId, int voucherNumber, int? excludeVoucherId = null)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         
         string sql = "SELECT COUNT(1) FROM Vouchers WHERE CompanyId = @CompanyId AND VoucherNumber = @VoucherNumber";
         object parameters = new { CompanyId = companyId, VoucherNumber = voucherNumber };
@@ -745,7 +745,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<int> CountByCompanyAsync(int companyId)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = "SELECT COUNT(*) FROM Vouchers WHERE CompanyId = @CompanyId";
         
         return await connection.QuerySingleAsync<int>(sql, new { CompanyId = companyId });
@@ -753,7 +753,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<decimal> GetVehicleBalanceAsync(int vehicleId, DateTime? upToDate = null)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         
         string sql = @"
             SELECT COALESCE(SUM(CASE WHEN DrCr = 'D' THEN Amount ELSE -Amount END), 0)
@@ -773,7 +773,7 @@ public class VoucherRepository : IVoucherRepository
 
     public async Task<(decimal TotalDebits, decimal TotalCredits)> GetDailySummaryAsync(int companyId, DateTime date)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT 
                 COALESCE(SUM(CASE WHEN DrCr = 'D' THEN Amount ELSE 0 END), 0) as TotalDebits,

@@ -30,7 +30,7 @@ public class CompanyRepository : ICompanyRepository
 
     public async Task<IEnumerable<Company>> GetAllAsync()
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT CompanyId, Name, FinancialYearStart, FinancialYearEnd, 
                    LastVoucherNumber, IsActive, CreatedDate, ModifiedDate
@@ -50,7 +50,7 @@ public class CompanyRepository : ICompanyRepository
 
     public async Task<Company> AddAsync(Company entity)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             INSERT INTO Companies (Name, FinancialYearStart, FinancialYearEnd, 
                                  LastVoucherNumber, IsActive, CreatedDate, ModifiedDate)
@@ -69,7 +69,7 @@ public class CompanyRepository : ICompanyRepository
 
     public async Task<Company> UpdateAsync(Company entity)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             UPDATE Companies 
             SET Name = @Name, FinancialYearStart = @FinancialYearStart, 
@@ -85,7 +85,7 @@ public class CompanyRepository : ICompanyRepository
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = "DELETE FROM Companies WHERE CompanyId = @Id";
         
         var rowsAffected = await connection.ExecuteAsync(sql, new { Id = id });
@@ -94,7 +94,7 @@ public class CompanyRepository : ICompanyRepository
 
     public async Task<bool> ExistsAsync(int id)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = "SELECT COUNT(1) FROM Companies WHERE CompanyId = @Id";
         
         var count = await connection.QuerySingleAsync<int>(sql, new { Id = id });
@@ -103,7 +103,7 @@ public class CompanyRepository : ICompanyRepository
 
     public async Task<int> CountAsync()
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = "SELECT COUNT(*) FROM Companies";
         
         return await connection.QuerySingleAsync<int>(sql);
@@ -111,7 +111,7 @@ public class CompanyRepository : ICompanyRepository
 
     public async Task<Company?> GetByNameAsync(string name)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT CompanyId, Name, FinancialYearStart, FinancialYearEnd, 
                    LastVoucherNumber, IsActive, CreatedDate, ModifiedDate
@@ -123,7 +123,7 @@ public class CompanyRepository : ICompanyRepository
 
     public async Task<IEnumerable<Company>> GetActiveCompaniesAsync()
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT CompanyId, Name, FinancialYearStart, FinancialYearEnd, 
                    LastVoucherNumber, IsActive, CreatedDate, ModifiedDate
@@ -163,7 +163,7 @@ public class CompanyRepository : ICompanyRepository
 
     public async Task<bool> IsCompanyNameUniqueAsync(string name, int? excludeCompanyId = null)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         
         string sql = "SELECT COUNT(1) FROM Companies WHERE Name = @Name";
         object parameters = new { Name = name };

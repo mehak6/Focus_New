@@ -220,6 +220,20 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
             return Task.FromResult(false);
         }
 
+        // Validate maximum amount (prevent data overflow)
+        if (CurrentVoucher.Amount > 9999999999999.99m)
+        {
+            StatusMessage = "❌ Amount exceeds maximum allowed value";
+            return Task.FromResult(false);
+        }
+
+        // Validate decimal precision (max 2 decimal places)
+        if (CurrentVoucher.Amount != Math.Round(CurrentVoucher.Amount, 2))
+        {
+            StatusMessage = "❌ Amount cannot have more than 2 decimal places";
+            return Task.FromResult(false);
+        }
+
         if (string.IsNullOrWhiteSpace(CurrentVoucher.DrCr) || (CurrentVoucher.DrCr != "D" && CurrentVoucher.DrCr != "C"))
         {
             StatusMessage = "❌ Please select Dr/Cr";

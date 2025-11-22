@@ -18,7 +18,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<Vehicle?> GetByIdAsync(int id)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT v.VehicleId, v.CompanyId, v.VehicleNumber, v.Narration, 
                    v.IsActive, v.CreatedDate, v.ModifiedDate,
@@ -42,7 +42,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<IEnumerable<Vehicle>> GetAllAsync()
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT v.VehicleId, v.CompanyId, v.VehicleNumber, v.Narration, 
                    v.IsActive, v.CreatedDate, v.ModifiedDate,
@@ -71,7 +71,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<Vehicle> AddAsync(Vehicle entity)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             INSERT INTO Vehicles (CompanyId, VehicleNumber, Narration, IsActive, CreatedDate, ModifiedDate)
             VALUES (@CompanyId, @VehicleNumber, @Narration, @IsActive, @CreatedDate, @ModifiedDate);
@@ -88,11 +88,11 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<Vehicle> UpdateAsync(Vehicle entity)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
-            UPDATE Vehicles 
-            SET CompanyId = @CompanyId, VehicleNumber = @VehicleNumber, 
-                Description = @Description, IsActive = @IsActive, ModifiedDate = @ModifiedDate
+            UPDATE Vehicles
+            SET CompanyId = @CompanyId, VehicleNumber = @VehicleNumber,
+                Narration = @Narration, IsActive = @IsActive, ModifiedDate = @ModifiedDate
             WHERE VehicleId = @VehicleId";
 
         entity.ModifiedDate = DateTime.Now;
@@ -103,7 +103,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<bool> DeleteAsync(int id)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = "DELETE FROM Vehicles WHERE VehicleId = @Id";
         
         var rowsAffected = await connection.ExecuteAsync(sql, new { Id = id });
@@ -112,7 +112,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<bool> ExistsAsync(int id)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = "SELECT COUNT(1) FROM Vehicles WHERE VehicleId = @Id";
         
         var count = await connection.QuerySingleAsync<int>(sql, new { Id = id });
@@ -121,7 +121,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<int> CountAsync()
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = "SELECT COUNT(*) FROM Vehicles";
         
         return await connection.QuerySingleAsync<int>(sql);
@@ -129,7 +129,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<IEnumerable<Vehicle>> GetByCompanyIdAsync(int companyId)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT VehicleId, CompanyId, VehicleNumber, Narration, 
                    IsActive, CreatedDate, ModifiedDate
@@ -142,7 +142,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<IEnumerable<Vehicle>> GetActiveByCompanyIdAsync(int companyId)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT VehicleId, CompanyId, VehicleNumber, Narration, 
                    IsActive, CreatedDate, ModifiedDate
@@ -155,7 +155,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<IEnumerable<Vehicle>> SearchVehiclesAsync(int companyId, string searchTerm)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT VehicleId, CompanyId, VehicleNumber, Narration, 
                    IsActive, CreatedDate, ModifiedDate
@@ -171,7 +171,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<Vehicle?> GetByVehicleNumberAsync(int companyId, string vehicleNumber)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT VehicleId, CompanyId, VehicleNumber, Narration, 
                    IsActive, CreatedDate, ModifiedDate
@@ -184,7 +184,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<decimal> GetVehicleBalanceAsync(int vehicleId)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT COALESCE(SUM(CASE WHEN DrCr = 'D' THEN Amount ELSE -Amount END), 0)
             FROM Vouchers 
@@ -195,7 +195,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<DateTime?> GetLastTransactionDateAsync(int vehicleId)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
         const string sql = @"
             SELECT MAX(Date)
             FROM Vouchers 
@@ -206,7 +206,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<bool> IsVehicleNumberUniqueAsync(int companyId, string vehicleNumber, int? excludeVehicleId = null)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
 
         string sql = "SELECT COUNT(1) FROM Vehicles WHERE CompanyId = @CompanyId AND VehicleNumber = @VehicleNumber";
         object parameters = new { CompanyId = companyId, VehicleNumber = vehicleNumber };
@@ -223,7 +223,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<bool> MergeVehiclesAsync(int sourceVehicleId, int targetVehicleId)
     {
-        var connection = await _dbConnection.GetConnectionAsync();
+        using var connection = await _dbConnection.GetConnectionAsync();
 
         using var transaction = connection.BeginTransaction();
         try

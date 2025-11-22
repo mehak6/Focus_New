@@ -138,6 +138,21 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
             return false;
         }
 
+        // Validate vehicle number length
+        if (CurrentVehicle.VehicleNumber.Trim().Length > 50)
+        {
+            StatusMessage = "Vehicle number cannot exceed 50 characters";
+            return false;
+        }
+
+        // Validate vehicle number format (alphanumeric, spaces, hyphens, and common separators)
+        var vehicleNumber = CurrentVehicle.VehicleNumber.Trim();
+        if (!System.Text.RegularExpressions.Regex.IsMatch(vehicleNumber, @"^[a-zA-Z0-9\s\-\/\.]+$"))
+        {
+            StatusMessage = "Vehicle number contains invalid characters. Only letters, numbers, spaces, hyphens, slashes, and dots are allowed.";
+            return false;
+        }
+
         if (CurrentCompany == null)
         {
             StatusMessage = "No company selected";
@@ -146,8 +161,8 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
 
         // Check uniqueness
         var isUnique = await _dataService.Vehicles.IsVehicleNumberUniqueAsync(
-            CurrentCompany.CompanyId, 
-            CurrentVehicle.VehicleNumber, 
+            CurrentCompany.CompanyId,
+            CurrentVehicle.VehicleNumber,
             CurrentVehicle.VehicleId == 0 ? null : CurrentVehicle.VehicleId);
 
         if (!isUnique)

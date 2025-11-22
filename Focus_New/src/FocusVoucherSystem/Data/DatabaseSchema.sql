@@ -37,7 +37,8 @@ CREATE TABLE Vehicles (
     IsActive BOOLEAN NOT NULL DEFAULT 1,
     CreatedDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ModifiedDate DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (CompanyId) REFERENCES Companies(CompanyId) ON DELETE CASCADE
+    FOREIGN KEY (CompanyId) REFERENCES Companies(CompanyId) ON DELETE CASCADE,
+    UNIQUE(CompanyId, VehicleNumber)
 );
 
 -- =============================================================================
