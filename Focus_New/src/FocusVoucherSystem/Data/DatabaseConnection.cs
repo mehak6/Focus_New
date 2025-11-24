@@ -25,15 +25,10 @@ public class DatabaseConnection : IDisposable
 
         _encryptionKey = encryptionKey;
 
-        // Add password to connection string if encryption key provided
-        if (!string.IsNullOrEmpty(_encryptionKey))
-        {
-            _connectionString = $"Data Source={databasePath};Cache=Shared;Password={_encryptionKey}";
-        }
-        else
-        {
-            _connectionString = $"Data Source={databasePath};Cache=Shared";
-        }
+        // Note: Database encryption via connection string requires SQLCipher
+        // For now, we only use password authentication without database encryption
+        // TODO: Implement SQLCipher for full database encryption
+        _connectionString = $"Data Source={databasePath};Cache=Shared";
     }
 
     /// <summary>
