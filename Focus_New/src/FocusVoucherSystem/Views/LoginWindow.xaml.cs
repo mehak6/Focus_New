@@ -45,6 +45,11 @@ public partial class LoginWindow : Window
         var enteredPasswordHash = SecurityService.ComputeSha256Hash(enteredPassword);
         var correctPasswordHash = SecurityService.GetPasswordHash();
 
+        // Debug output
+        System.Diagnostics.Debug.WriteLine($"Entered password: {enteredPassword}");
+        System.Diagnostics.Debug.WriteLine($"Entered hash: {enteredPasswordHash}");
+        System.Diagnostics.Debug.WriteLine($"Expected hash: {correctPasswordHash}");
+
         if (enteredPasswordHash.Equals(correctPasswordHash, StringComparison.OrdinalIgnoreCase))
         {
             IsAuthenticated = true;
@@ -57,7 +62,7 @@ public partial class LoginWindow : Window
         {
             IsAuthenticated = false;
             EncryptionKey = null;
-            ShowError("Incorrect password. Access denied.");
+            ShowError($"Incorrect password. Access denied. (Debug: {enteredPasswordHash.Substring(0, 10)}...)");
             PasswordInput.Clear();
             PasswordInput.Focus();
         }

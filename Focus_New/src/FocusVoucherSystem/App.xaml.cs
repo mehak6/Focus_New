@@ -49,7 +49,7 @@ public partial class App : Application
             System.Diagnostics.Debug.WriteLine($"App.xaml.cs: Login result: {loginResult}, IsAuthenticated: {loginWindow.IsAuthenticated}");
 
             // If login failed or cancelled, exit application
-            if (loginResult != true || !loginWindow.IsAuthenticated || string.IsNullOrEmpty(loginWindow.EncryptionKey))
+            if (loginResult != true || !loginWindow.IsAuthenticated)
             {
                 System.Diagnostics.Debug.WriteLine($"App.xaml.cs: Authentication failed - exiting");
                 Shutdown();
