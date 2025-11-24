@@ -1,15 +1,16 @@
 using System.Windows;
 using System.Windows.Input;
+using FocusVoucherSystem.Services;
 
 namespace FocusVoucherSystem.Views;
 
 /// <summary>
-/// Login window for password protection
+/// Login window for password protection with secure hashing and encryption key derivation
 /// </summary>
 public partial class LoginWindow : Window
 {
-    private const string CORRECT_PASSWORD = "mehak";
     public bool IsAuthenticated { get; private set; }
+    public string? EncryptionKey { get; private set; }
 
     public LoginWindow()
     {
@@ -40,15 +41,22 @@ public partial class LoginWindow : Window
             return;
         }
 
-        if (enteredPassword == CORRECT_PASSWORD)
+        // Hash the entered password and compare with stored hash
+        var enteredPasswordHash = SecurityService.ComputeSha256Hash(enteredPassword);
+        var correctPasswordHash = SecurityService.GetPasswordHash();
+
+        if (enteredPasswordHash.Equals(correctPasswordHash, StringComparison.OrdinalIgnoreCase))
         {
             IsAuthenticated = true;
+            // Derive encryption key from password for database encryption
+            EncryptionKey = SecurityService.DeriveEncryptionKey(enteredPassword);
             DialogResult = true;
             Close();
         }
         else
         {
             IsAuthenticated = false;
+            EncryptionKey = null;
             ShowError("Incorrect password. Access denied.");
             PasswordInput.Clear();
             PasswordInput.Focus();

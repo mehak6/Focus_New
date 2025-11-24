@@ -12,9 +12,9 @@ public class DataService : IDisposable
     private readonly DatabaseConnection _dbConnection;
     private readonly DatabaseBackupService _backupService;
 
-    public DataService(string? databasePath = null)
+    public DataService(string? databasePath = null, string? encryptionKey = null)
     {
-        _dbConnection = new DatabaseConnection(databasePath);
+        _dbConnection = new DatabaseConnection(databasePath, encryptionKey);
 
         // Initialize repositories
         Companies = new CompanyRepository(_dbConnection);

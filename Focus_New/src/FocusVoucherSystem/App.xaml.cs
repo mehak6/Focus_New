@@ -49,17 +49,17 @@ public partial class App : Application
             System.Diagnostics.Debug.WriteLine($"App.xaml.cs: Login result: {loginResult}, IsAuthenticated: {loginWindow.IsAuthenticated}");
 
             // If login failed or cancelled, exit application
-            if (loginResult != true || !loginWindow.IsAuthenticated)
+            if (loginResult != true || !loginWindow.IsAuthenticated || string.IsNullOrEmpty(loginWindow.EncryptionKey))
             {
                 System.Diagnostics.Debug.WriteLine($"App.xaml.cs: Authentication failed - exiting");
                 Shutdown();
                 return;
             }
 
-            System.Diagnostics.Debug.WriteLine($"App.xaml.cs: Authentication successful - continuing");
+            System.Diagnostics.Debug.WriteLine($"App.xaml.cs: Authentication successful - continuing with encrypted database");
 
-            // Initialize services
-            var dataService = new DataService();
+            // Initialize services with encryption key from password
+            var dataService = new DataService(null, loginWindow.EncryptionKey);
 
             // Create and show company selection window
             var companySelectionViewModel = new CompanySelectionViewModel(dataService);

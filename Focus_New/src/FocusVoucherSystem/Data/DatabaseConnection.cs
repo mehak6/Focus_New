@@ -11,9 +11,10 @@ namespace FocusVoucherSystem.Data;
 public class DatabaseConnection : IDisposable
 {
     private readonly string _connectionString;
+    private readonly string? _encryptionKey;
     private SqliteConnection? _connection;
 
-    public DatabaseConnection(string? databasePath = null)
+    public DatabaseConnection(string? databasePath = null, string? encryptionKey = null)
     {
         // Default to same folder as exe
         if (string.IsNullOrEmpty(databasePath))
@@ -22,7 +23,17 @@ public class DatabaseConnection : IDisposable
             databasePath = Path.Combine(exeDirectory, "FocusVoucher.db");
         }
 
-        _connectionString = $"Data Source={databasePath};Cache=Shared";
+        _encryptionKey = encryptionKey;
+
+        // Add password to connection string if encryption key provided
+        if (!string.IsNullOrEmpty(_encryptionKey))
+        {
+            _connectionString = $"Data Source={databasePath};Cache=Shared;Password={_encryptionKey}";
+        }
+        else
+        {
+            _connectionString = $"Data Source={databasePath};Cache=Shared";
+        }
     }
 
     /// <summary>
