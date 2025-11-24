@@ -26,7 +26,8 @@
       "Bash(\"C:/Program Files/dotnet/dotnet.exe\" publish Focus_New/src/FocusVoucherSystem/FocusVoucherSystem.csproj -c Release-Compact -o \"./publish_v1.5.0\" --self-contained false)",
       "Bash(\"C:/Program Files/dotnet/dotnet.exe\" publish:*)",
       "Bash(\"C:/Program Files/dotnet/dotnet.exe\" publish Focus_New/src/FocusVoucherSystem/FocusVoucherSystem.csproj -c Release-Compact -o \"./publish_v1.5.0_fix\" --self-contained false)",
-      "Bash(Remove-Item -Path \"d:\\Projects\\Focus\\publish_v1.5.0_fix\" -Recurse -Force)"
+      "Bash(Remove-Item -Path \"d:\\Projects\\Focus\\publish_v1.5.0_fix\" -Recurse -Force)",
+      "Bash(\"C:/Program Files/dotnet/dotnet.exe\" publish Focus_New/src/FocusVoucherSystem/FocusVoucherSystem.csproj -c Release-Compact -o \"./publish_v1.5.1\" --self-contained false)"
     ],
     "deny": [],
     "ask": []

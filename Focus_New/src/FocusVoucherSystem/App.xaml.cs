@@ -42,6 +42,22 @@ public partial class App : Application
             // Default is OnLastWindowClose, which can terminate the app before MainWindow is shown
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
+            // Show login window first
+            var loginWindow = new LoginWindow();
+            var loginResult = loginWindow.ShowDialog();
+
+            System.Diagnostics.Debug.WriteLine($"App.xaml.cs: Login result: {loginResult}, IsAuthenticated: {loginWindow.IsAuthenticated}");
+
+            // If login failed or cancelled, exit application
+            if (loginResult != true || !loginWindow.IsAuthenticated)
+            {
+                System.Diagnostics.Debug.WriteLine($"App.xaml.cs: Authentication failed - exiting");
+                Shutdown();
+                return;
+            }
+
+            System.Diagnostics.Debug.WriteLine($"App.xaml.cs: Authentication successful - continuing");
+
             // Initialize services
             var dataService = new DataService();
 
