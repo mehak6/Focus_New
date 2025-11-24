@@ -47,6 +47,6 @@ public static class SecurityService
     public static string GetPasswordHash()
     {
         // Pre-computed SHA256 hash of "mehak"
-        return "E8C1E1F5B8E7E4C3D9A2F1C5D8E7B4A9F2E3D8C1A7B6E5F4C9D2A8E7B3C1F6E4";
+        return "5D5B09F6DCB2D53A5FFFC60C4AC0D55FABDF556069D6631545F42838E9486204";
     }
 }
