@@ -56,10 +56,10 @@ public partial class App : Application
                 return;
             }
 
-            System.Diagnostics.Debug.WriteLine($"App.xaml.cs: Authentication successful - continuing with encrypted database");
+            System.Diagnostics.Debug.WriteLine($"App.xaml.cs: Authentication successful - continuing");
 
-            // Initialize services with encryption key from password
-            var dataService = new DataService(null, loginWindow.EncryptionKey);
+            // Initialize services (encryption key not used since SQLCipher not implemented)
+            var dataService = new DataService();
 
             // Create and show company selection window
             var companySelectionViewModel = new CompanySelectionViewModel(dataService);
