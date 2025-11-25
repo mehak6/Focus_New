@@ -1,5 +1,6 @@
 ﻿using System.Configuration;
 using System.Data;
+using System.IO;
 using System.Windows;
 using System.Globalization;
 using System.Windows.Markup;
@@ -41,6 +42,32 @@ public partial class App : Application
             // Prevent the app from auto-shutting down when the selection dialog closes
             // Default is OnLastWindowClose, which can terminate the app before MainWindow is shown
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+            // Check if application is locked before showing login window
+            if (SecurityService.IsLocked())
+            {
+                var loginStatePath = SecurityService.GetLoginStateFilePath();
+                var message = $@"⚠️ APPLICATION LOCKED ⚠️
+
+This application is locked due to too many failed login attempts.
+
+To recover:
+1. Locate your backup in:
+   {Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "FocusVoucherSystem", "SecureBackups")}
+
+2. Follow instructions in recovery_instructions.txt
+
+3. Delete the lock file:
+   {loginStatePath}
+
+4. Restart the application
+
+The application will now close.";
+
+                MessageBox.Show(message, "Application Locked", MessageBoxButton.OK, MessageBoxImage.Stop);
+                Shutdown();
+                return;
+            }
 
             // Show login window first
             var loginWindow = new LoginWindow();
