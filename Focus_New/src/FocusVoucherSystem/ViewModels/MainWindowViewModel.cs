@@ -69,13 +69,14 @@ public partial class MainWindowViewModel : BaseViewModel, INavigationAware
             {
                 var backupFiles = Directory.GetFiles(backupDir, "FocusVoucher_Backup_*.db.gz")
                     .Concat(Directory.GetFiles(backupDir, "FocusVoucher_Backup_*.db"))
-                    .OrderByDescending(f => File.GetCreationTime(f))
+                    .OrderByDescending(f => File.GetLastWriteTime(f))
                     .ToList();
 
                 string statusText;
                 if (backupFiles.Any())
                 {
-                    var lastBackup = File.GetCreationTime(backupFiles.First());
+                    // Use GetLastWriteTime to get the actual time the file was last modified/created
+                    var lastBackup = File.GetLastWriteTime(backupFiles.First());
                     var timeAgo = DateTime.Now - lastBackup;
 
                     if (timeAgo.TotalMinutes < 1)

@@ -316,21 +316,29 @@ public partial class VehicleManagementViewModel : BaseViewModel, INavigationAwar
             {
                 // Update existing vehicle
                 savedVehicle = await _dataService.Vehicles.UpdateAsync(CurrentVehicle);
-                
+
                 // Update the display item in collection
                 var displayItem = _allVehicles.FirstOrDefault(v => v.VehicleId == savedVehicle.VehicleId);
                 if (displayItem != null)
                 {
                     displayItem.UpdateVehicleData(savedVehicle);
-                    
+
                     // Refresh balance and transaction data
                     var balance = await _dataService.Vehicles.GetVehicleBalanceAsync(savedVehicle.VehicleId);
                     var lastTransactionDate = await _dataService.Vehicles.GetLastTransactionDateAsync(savedVehicle.VehicleId);
-                    
+
                     displayItem.UpdateBalance(balance);
                     displayItem.UpdateLastTransactionDate(lastTransactionDate);
+
+                    // Force UI refresh by removing and re-adding the item
+                    var index = Vehicles.IndexOf(displayItem);
+                    if (index >= 0)
+                    {
+                        Vehicles.RemoveAt(index);
+                        Vehicles.Insert(index, displayItem);
+                    }
                 }
-                
+
                 StatusMessage = $"Vehicle '{savedVehicle.VehicleNumber}' updated successfully";
             }
 
