@@ -174,7 +174,8 @@ public partial class ReportsViewModel : BaseViewModel, INavigationAware
                 cancellationToken.ThrowIfCancellationRequested();
 
                 // When date changes, add day total row and reset day counters
-                if (lastDate.HasValue && v.Date != lastDate.Value)
+                // Use .Date property for date-only comparison to avoid time component issues
+                if (lastDate.HasValue && v.Date.Date != lastDate.Value.Date)
                 {
                     // Add day total row
                     var dayNet = dayDebits - dayCredits;

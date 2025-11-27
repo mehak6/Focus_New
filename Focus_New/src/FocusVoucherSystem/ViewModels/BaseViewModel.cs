@@ -23,24 +23,39 @@ public abstract partial class BaseViewModel : ObservableObject
     [ObservableProperty]
     private string _errorMessage = string.Empty;
 
+    private int _busyCount = 0;
+    private readonly object _busyLock = new object();
+
     protected BaseViewModel(DataService dataService)
     {
         _dataService = dataService;
     }
 
     /// <summary>
-    /// Sets the busy state with an optional message
+    /// Sets the busy state with an optional message (thread-safe with reference counting)
     /// </summary>
     /// <param name="isBusy">Whether the ViewModel is busy</param>
     /// <param name="message">Optional busy message to display</param>
     protected void SetBusy(bool isBusy, string message = "")
     {
-        IsBusy = isBusy;
-        BusyMessage = message;
-        
-        if (!isBusy)
+        lock (_busyLock)
         {
-            BusyMessage = string.Empty;
+            if (isBusy)
+            {
+                _busyCount++;
+                IsBusy = true;
+                BusyMessage = message;
+            }
+            else
+            {
+                _busyCount--;
+                if (_busyCount <= 0)
+                {
+                    _busyCount = 0;
+                    IsBusy = false;
+                    BusyMessage = string.Empty;
+                }
+            }
         }
     }
 

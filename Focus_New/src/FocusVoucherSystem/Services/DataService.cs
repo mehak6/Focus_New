@@ -143,10 +143,18 @@ public class DataService : IDisposable
             await connection.ExecuteAsync("UPDATE Companies SET LastVoucherNumber = 0 WHERE CompanyId = @CompanyId", new { CompanyId = companyId }, tx);
             tx.Commit();
         }
-        catch
+        catch (Exception ex)
         {
-            try { tx.Rollback(); } catch { }
-            throw;
+            try
+            {
+                tx.Rollback();
+            }
+            catch (Exception rollbackEx)
+            {
+                // Log rollback failure
+                System.Diagnostics.Debug.WriteLine($"Transaction rollback failed: {rollbackEx.Message}");
+            }
+            throw; // Re-throw original exception
         }
     }
 

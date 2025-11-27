@@ -98,6 +98,8 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     private VehicleDisplayItem? _selectedVehicleForEdit;
 
     private List<VehicleDisplayItem> _allVehicles = new();
+
+    private CancellationTokenSource? _loadVouchersCancellation;
     private List<Voucher> _allVouchers = new();
 
     [ObservableProperty]
@@ -194,7 +196,7 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     /// <summary>
     /// Loads vouchers for the selected vehicle with optimized performance and pagination
     /// </summary>
-    private async Task LoadVouchersForVehicleAsync(VehicleDisplayItem vehicle, int page = 1)
+    private async Task LoadVouchersForVehicleAsync(VehicleDisplayItem vehicle, int page = 1, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -206,24 +208,39 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
                 throw new InvalidOperationException($"Invalid vehicle ID: {vehicle.VehicleId}");
             }
 
+            // Check for cancellation before starting work
+            cancellationToken.ThrowIfCancellationRequested();
+
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             int offset = (page - 1) * PAGE_SIZE;
 
-            // Use background task for heavy work
+            // Use background task for heavy work with cancellation support
             var (vouchers, totalCount) = await Task.Run(async () =>
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var result = await _dataService.Vouchers.GetByVehicleIdPagedAsync(vehicle.VehicleId, PAGE_SIZE, offset);
                 return result;
-            });
+            }, cancellationToken);
 
             // Convert to list only once, in background
-            _allVouchers = await Task.Run(() => vouchers.ToList());
+            _allVouchers = await Task.Run(() =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return vouchers.ToList();
+            }, cancellationToken);
 
             stopwatch.Stop();
+
+            // Check for cancellation before updating UI
+            cancellationToken.ThrowIfCancellationRequested();
 
             // Update UI on dispatcher thread
             await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
+                // Final cancellation check before UI update
+                if (cancellationToken.IsCancellationRequested)
+                    return;
+
                 // Update pagination state
                 CurrentPage = page;
                 TotalVouchersCount = totalCount;
@@ -899,9 +916,14 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     /// </summary>
     partial void OnSelectedVehicleChanged(VehicleDisplayItem? value)
     {
+        // Cancel any ongoing load operation
+        _loadVouchersCancellation?.Cancel();
+        _loadVouchersCancellation?.Dispose();
+        _loadVouchersCancellation = new CancellationTokenSource();
+
         if (value != null)
         {
-            _ = LoadVouchersForVehicleSafeAsync(value);
+            _ = LoadVouchersForVehicleSafeAsync(value, _loadVouchersCancellation.Token);
         }
         else
         {
@@ -912,22 +934,31 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     }
 
     /// <summary>
-    /// Safely loads vouchers for vehicle with proper error handling
+    /// Safely loads vouchers for vehicle with proper error handling and cancellation support
     /// </summary>
-    private async Task LoadVouchersForVehicleSafeAsync(VehicleDisplayItem vehicle)
+    private async Task LoadVouchersForVehicleSafeAsync(VehicleDisplayItem vehicle, CancellationToken cancellationToken = default)
     {
         try
         {
-            await LoadVouchersForVehicleAsync(vehicle);
+            await LoadVouchersForVehicleAsync(vehicle, page: 1, cancellationToken: cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // Operation was cancelled - this is normal, don't show error
+            System.Diagnostics.Debug.WriteLine($"Load vouchers cancelled for {vehicle.VehicleNumber}");
         }
         catch (Exception ex)
         {
-            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            // Only update UI if operation wasn't cancelled
+            if (!cancellationToken.IsCancellationRequested)
             {
-                StatusMessage = $"Error loading vouchers for {vehicle.VehicleNumber}: {ex.Message}";
-                Vouchers.Clear();
-                TotalVouchers = 0;
-            });
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    StatusMessage = $"Error loading vouchers for {vehicle.VehicleNumber}: {ex.Message}";
+                    Vouchers.Clear();
+                    TotalVouchers = 0;
+                });
+            }
         }
     }
 
@@ -1151,4 +1182,22 @@ public partial class SearchViewModel : BaseViewModel, INavigationAware
     }
 
     #endregion
+
+    /// <summary>
+    /// Cleanup method to dispose resources
+    /// </summary>
+    public override void Cleanup()
+    {
+        _loadVouchersCancellation?.Cancel();
+        _loadVouchersCancellation?.Dispose();
+        _loadVouchersCancellation = null;
+
+        // Unsubscribe from current voucher property changes
+        if (_currentVoucher != null)
+        {
+            _currentVoucher.PropertyChanged -= OnCurrentVoucherPropertyChanged;
+        }
+
+        base.Cleanup();
+    }
 }

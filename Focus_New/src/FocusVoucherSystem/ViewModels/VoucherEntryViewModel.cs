@@ -331,9 +331,13 @@ public partial class VoucherEntryViewModel : BaseViewModel, INavigationAware
                 if (index >= 0)
                 {
                     Vouchers[index] = savedVoucher;
+                    StatusMessage = $"Voucher {savedVoucher.VoucherNumber} updated successfully";
                 }
-                
-                StatusMessage = $"Voucher {savedVoucher.VoucherNumber} updated successfully";
+                else
+                {
+                    // Voucher not in current view (may be filtered out) - notify user
+                    StatusMessage = $"Voucher {savedVoucher.VoucherNumber} updated (not visible in current page)";
+                }
             }
 
             // Load fresh vehicle data for the saved voucher

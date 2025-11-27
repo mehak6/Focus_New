@@ -69,10 +69,14 @@ public class Vehicle
 
     /// <summary>
     /// Calculates the current balance for this vehicle
-    /// Note: This should be computed via repository for performance
+    /// OBSOLETE: This method requires navigation properties to be loaded (which Dapper doesn't do).
+    /// Use VehicleRepository.GetVehicleBalanceAsync() instead for accurate balance calculation.
     /// </summary>
+    [Obsolete("Use VehicleRepository.GetVehicleBalanceAsync() instead. Navigation properties may not be loaded.")]
     public decimal CalculateBalance()
     {
+        // WARNING: Vouchers collection is typically empty with Dapper queries
+        // This will almost always return 0. Use repository method instead.
         return Vouchers
             .Where(v => v.VehicleId == VehicleId)
             .Sum(v => v.DrCr == "D" ? v.Amount : -v.Amount);
