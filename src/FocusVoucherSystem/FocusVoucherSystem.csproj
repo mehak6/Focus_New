@@ -13,8 +13,8 @@
     <Product>Focus Voucher System</Product>
     <Company>Focus Technologies</Company>
     <Copyright>Copyright © 2024 Focus Technologies</Copyright>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.6.0.0</AssemblyVersion>
+    <FileVersion>1.6.0.0</FileVersion>
     
     <!-- Optimized Deployment (WPF-compatible) -->
     <PublishSingleFile Condition="'$(Configuration)' == 'Release'">true</PublishSingleFile>

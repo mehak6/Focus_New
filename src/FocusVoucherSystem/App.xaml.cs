@@ -15,6 +15,8 @@ namespace FocusVoucherSystem;
 /// </summary>
 public partial class App : Application
 {
+    private DatabaseBackupService? _backupService;
+
     private async void Application_Startup(object sender, StartupEventArgs e)
     {
         try
@@ -37,6 +39,18 @@ public partial class App : Application
 
             // Initialize services
             var dataService = new DataService();
+            
+            // Initialize and start backup service
+            try 
+            {
+                _backupService = new DatabaseBackupService();
+                // The service starts the timer in its constructor
+                System.Diagnostics.Debug.WriteLine($"App.xaml.cs: DatabaseBackupService started");
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"App.xaml.cs: Failed to start backup service: {ex.Message}");
+            }
 
             // Create and show company selection window
             var companySelectionViewModel = new CompanySelectionViewModel(dataService);
@@ -104,5 +118,11 @@ public partial class App : Application
                 MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown();
         }
+    }
+
+    protected override void OnExit(ExitEventArgs e)
+    {
+        _backupService?.Dispose();
+        base.OnExit(e);
     }
 }
